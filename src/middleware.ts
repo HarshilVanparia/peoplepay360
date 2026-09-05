@@ -6,24 +6,24 @@ export default withAuth(
     const token = req.nextauth.token;
     const path = req.nextUrl.pathname;
 
-    // Explicitly kick unauthenticated users to login immediately
-    if (!token) {
-      return NextResponse.redirect(new URL('/login', req.url));
-    }
+    if (!token) return NextResponse.redirect(new URL('/login', req.url));
 
     const role = token.role as string;
 
+    // 1. Block Employees & HR Managers from Payroll[cite: 2]
     if (path.startsWith('/payroll') && !['HR Payroll User', 'HR Payroll Manager', 'Admin'].includes(role)) {
       return NextResponse.redirect(new URL('/', req.url));
     }
 
+    // 2. Block standard Employees from HR Master Data[cite: 2]
     if (
-      (path.startsWith('/employees') || path.startsWith('/contracts') || path.startsWith('/schedules')) &&
+      (path.startsWith('/employees') || path.startsWith('/contracts') || path.startsWith('/schedules') || path.startsWith('/attendance')) &&
       !['HR Manager', 'HR Payroll User', 'HR Payroll Manager', 'Admin'].includes(role)
     ) {
-      if (path === '/employees') return NextResponse.redirect(new URL('/', req.url));
+      return NextResponse.redirect(new URL('/', req.url));
     }
 
+    // 3. Block standard Employees from Time Off Administration[cite: 2]
     if (
       (path.startsWith('/time-off/allocations') || path.startsWith('/time-off/types')) &&
       !['HR Manager', 'HR Payroll User', 'HR Payroll Manager', 'Admin'].includes(role)
@@ -35,7 +35,7 @@ export default withAuth(
   },
   {
     callbacks: {
-      authorized: () => true, // Let the middleware function handle the strict token check
+      authorized: ({ token }) => !!token,
     },
   }
 );

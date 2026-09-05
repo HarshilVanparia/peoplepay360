@@ -1,9 +1,9 @@
 import { query } from '../../lib/db';
 import { Users, Banknote, CalendarDays, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
+import { DashboardCharts } from './components/DashboardCharts';
 
 export default async function PayrollDashboard() {
-  // Aggregate live metrics via relational joins[cite: 3]
   const [metrics] = await query(`
     SELECT 
       (SELECT COUNT(*) FROM employees WHERE status = 'Active') as active_employees,
@@ -12,15 +12,31 @@ export default async function PayrollDashboard() {
       (SELECT COUNT(*) FROM payslips p JOIN employees e ON p.employee_id = e.id WHERE e.bank_account_no IS NULL OR p.has_warning = TRUE) as anomalies
   `) as any[];
 
+  // Real SQL aggregation for the charts[cite: 1]
+  const departmentData = await query(`
+    SELECT e.department as name, COALESCE(SUM(p.gross_salary), 0) as cost
+    FROM employees e
+    LEFT JOIN payslips p ON e.id = p.employee_id AND p.status IN ('Validated', 'Paid')
+    GROUP BY e.department
+  `) as any[];
+
+  const trendData = await query(`
+    SELECT DATE_FORMAT(pr.period_start, '%b') as month, COALESCE(SUM(ps.net_salary), 0) as net
+    FROM payruns pr
+    JOIN payslips ps ON pr.id = ps.payrun_id
+    WHERE pr.status IN ('Validated', 'Paid')
+    GROUP BY month
+    ORDER BY MIN(pr.period_start) ASC LIMIT 6
+  `) as any[];
+
   return (
     <div className="min-h-screen bg-slate-50 p-8">
       <div className="max-w-7xl mx-auto space-y-8">
         <div>
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Operational Dashboard</h1>
-          <p className="text-sm text-slate-500 mt-1">Live metrics across HR, attendance, and payroll operations[cite: 3].</p>
+          <p className="text-sm text-slate-500 mt-1">Live metrics and historical payroll trends[cite: 1].</p>
         </div>
 
-        {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
             <div className="p-4 bg-blue-50 text-blue-600 rounded-lg"><Users size={24} /></div>
@@ -46,28 +62,13 @@ export default async function PayrollDashboard() {
           <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
             <div className="p-4 bg-red-50 text-red-600 rounded-lg"><AlertTriangle size={24} /></div>
             <div>
-              <p className="text-sm font-medium text-slate-500">Pre-Payroll Anomalies</p>
+              <p className="text-sm font-medium text-slate-500">Payroll Anomalies</p>
               <p className="text-2xl font-bold text-slate-900">{metrics.anomalies}</p>
             </div>
           </div>
         </div>
 
-        {/* Quick Action Hub */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-          <h2 className="text-lg font-bold text-slate-900 mb-4">Required Actions</h2>
-          {metrics.anomalies > 0 && (
-            <div className="flex items-center justify-between p-4 bg-red-50 text-red-700 rounded-lg border border-red-100 mb-3">
-              <span className="font-medium flex items-center gap-2"><AlertTriangle size={18} /> Missing Bank Details detected in Draft Payslips.</span>
-              <Link href="/payroll/payruns" className="text-sm font-bold hover:underline">Review Payruns &rarr;</Link>
-            </div>
-          )}
-          {metrics.pending_leaves > 0 && (
-            <div className="flex items-center justify-between p-4 bg-amber-50 text-amber-700 rounded-lg border border-amber-100">
-              <span className="font-medium flex items-center gap-2"><CalendarDays size={18} /> {metrics.pending_leaves} Time Off requests require approval.</span>
-              <Link href="/time-off/requests" className="text-sm font-bold hover:underline">Review Requests &rarr;</Link>
-            </div>
-          )}
-        </div>
+        <DashboardCharts departmentData={departmentData} trendData={trendData} />
       </div>
     </div>
   );
