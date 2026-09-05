@@ -3,13 +3,13 @@ import { Users, Banknote, CalendarDays, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 
 export default async function PayrollDashboard() {
-  // Aggregate live metrics[cite: 2]
+  // Aggregate live metrics via relational joins[cite: 3]
   const [metrics] = await query(`
     SELECT 
       (SELECT COUNT(*) FROM employees WHERE status = 'Active') as active_employees,
       (SELECT SUM(net_salary) FROM payslips WHERE status IN ('Validated', 'Paid')) as total_paid,
       (SELECT COUNT(*) FROM leave_requests WHERE status = 'Pending') as pending_leaves,
-      (SELECT COUNT(*) FROM payslips WHERE bank_account_no IS NULL OR has_warning = TRUE) as anomalies
+      (SELECT COUNT(*) FROM payslips p JOIN employees e ON p.employee_id = e.id WHERE e.bank_account_no IS NULL OR p.has_warning = TRUE) as anomalies
   `) as any[];
 
   return (
@@ -17,7 +17,7 @@ export default async function PayrollDashboard() {
       <div className="max-w-7xl mx-auto space-y-8">
         <div>
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Operational Dashboard</h1>
-          <p className="text-sm text-slate-500 mt-1">Live metrics across HR, attendance, and payroll operations[cite: 2].</p>
+          <p className="text-sm text-slate-500 mt-1">Live metrics across HR, attendance, and payroll operations[cite: 3].</p>
         </div>
 
         {/* KPI Cards */}
