@@ -36,6 +36,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                       <Link href="/attendance" className="nav-link"><Clock size={17} /> Attendance</Link>
                     </>
                   )}
+                  {isEmployee && <Link href="/attendance" className="nav-link"><Clock size={17} /> My Attendance</Link>}
                   
                   {/* Global Access for Time Off[cite: 2] */}
                   <Link href="/time-off/requests" className="nav-link"><CalendarDays size={17} /> Time Off</Link>

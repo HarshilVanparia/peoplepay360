@@ -4,9 +4,9 @@ import { query } from '../lib/db';
 import { Resend } from 'resend';
 import { revalidatePath } from 'next/cache';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 export async function distributePayslips(payrunId: string) {
+  if (!process.env.RESEND_API_KEY) throw new Error('Email delivery is not configured. Add RESEND_API_KEY to .env.');
+  const resend = new Resend(process.env.RESEND_API_KEY);
   // Fetch all validated/paid payslips with employee emails
   const payslips = await query(`
     SELECT ps.*, e.first_name, e.last_name, e.email, pr.period_start, pr.period_end

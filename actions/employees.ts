@@ -35,6 +35,11 @@ export async function createEmployee(data: any) {
   return result.insertId;
 }
 
+export async function updateEmployee(id: string | number, data: any) {
+  await query(`UPDATE employees SET first_name=?,last_name=?,email=?,system_role=?,department=?,job_position=?,employment_type=?,status=?,schedule_id=?,manager_id=?,bank_name=?,bank_account_no=? WHERE id=?`, [data.first_name,data.last_name,data.email,data.system_role,data.department,data.job_position,data.employment_type,data.status,data.schedule_id||null,data.manager_id||null,data.bank_name||null,data.bank_account_no||null,id]);
+  revalidatePath('/employees'); revalidatePath(`/employees/${id}`);
+}
+
 export async function createEmployeesBulk(records: Array<Record<string, string>>) {
   if (!Array.isArray(records) || records.length === 0 || records.length > 100) throw new Error('Upload 1 to 100 employees at a time.');
   const allowedRoles = new Set(['Employee', 'HR Manager', 'HR Payroll User', 'HR Payroll Manager', 'Admin']);

@@ -1,9 +1,10 @@
-import { getStructureWithRules } from '../../../../../actions/salary-structures';
+import { getStructureWithRules, createSalaryRule } from '../../../../../actions/salary-structures';
 import { Calculator, Plus, Hash, Percent } from 'lucide-react';
 import Link from 'next/link';
 
-export default async function SalaryStructureDetail({ params }: { params: { id: string } }) {
-  const { structure, rules } = await getStructureWithRules(params.id);
+export default async function SalaryStructureDetail({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const { structure, rules } = await getStructureWithRules(id);
 
   if (!structure) return <div className="p-8">Structure not found.</div>;
 
@@ -19,9 +20,7 @@ export default async function SalaryStructureDetail({ params }: { params: { id: 
             </div>
             <p className="text-sm text-slate-500 mt-1">Rule execution sequence driving the final net salary[cite: 2].</p>
           </div>
-          <button className="flex items-center gap-2 bg-slate-900 text-white px-5 py-2.5 rounded-lg hover:bg-slate-800 transition font-medium text-sm shadow-sm">
-            <Plus size={16} /> Add Salary Rule
-          </button>
+          <details className="relative"><summary className="cursor-pointer flex items-center gap-2 bg-slate-900 text-white px-5 py-2.5 rounded-lg text-sm shadow-sm"><Plus size={16} /> Add Salary Rule</summary><form action={async (formData)=>{'use server';await createSalaryRule({structure_id:id,name:String(formData.get('name')),code:String(formData.get('code')),category:String(formData.get('category')),calculation_type:String(formData.get('calculation_type')),amount_value:String(formData.get('amount_value')),sequence:String(formData.get('sequence'))})}} className="absolute right-0 z-10 mt-2 w-80 rounded-xl border border-slate-200 bg-slate-900 p-4 space-y-2"><input required name="name" placeholder="Rule name" className="w-full rounded p-2"/><input required name="code" placeholder="Code" className="w-full rounded p-2"/><div className="grid grid-cols-2 gap-2"><select name="category" className="rounded p-2"><option>BASIC</option><option>ALLOWANCE</option><option>DEDUCTION</option></select><select name="calculation_type" className="rounded p-2"><option>FIXED</option><option>PERCENTAGE</option></select></div><input required name="amount_value" type="number" step="0.01" placeholder="Amount" className="w-full rounded p-2"/><input required name="sequence" type="number" value="10" className="w-full rounded p-2"/><button className="w-full rounded bg-violet-600 p-2 font-bold">Save rule</button></form></details>
         </div>
 
         {/* Sequenced Rules Table */}

@@ -1,6 +1,7 @@
 'use server';
 
 import { query } from '../lib/db';
+import { revalidatePath } from 'next/cache';
 
 export async function getSalaryStructures() {
   return await query(`
@@ -24,4 +25,9 @@ export async function getStructureWithRules(structureId: string) {
   );
 
   return { structure, rules };
+}
+
+export async function createSalaryRule(data: { structure_id: string; name: string; code: string; category: string; calculation_type: string; amount_value: string; sequence: string }) {
+  await query(`INSERT INTO salary_rules (structure_id,name,code,category,calculation_type,amount_value,sequence) VALUES (?,?,?,?,?,?,?)`, [data.structure_id,data.name,data.code,data.category,data.calculation_type,data.amount_value,data.sequence]);
+  revalidatePath(`/payroll/structures/${data.structure_id}`);
 }

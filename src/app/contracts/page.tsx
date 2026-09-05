@@ -28,7 +28,7 @@ export default async function ContractsPage({ searchParams }: { searchParams: Pr
               <tr>
                 <th className="py-4 px-6 text-xs font-bold text-slate-500 uppercase tracking-wider">Employee</th>
                 <th className="py-4 px-6 text-xs font-bold text-slate-500 uppercase tracking-wider">Department</th>
-                <th className="py-4 px-6 text-xs font-bold text-slate-500 uppercase tracking-wider">Structure</th>
+                <th className="py-4 px-6 text-xs font-bold text-slate-500 uppercase tracking-wider">Pay Rules</th>
                 <th className="py-4 px-6 text-xs font-bold text-slate-500 uppercase tracking-wider">Period</th>
                 <th className="py-4 px-6 text-xs font-bold text-slate-500 uppercase tracking-wider">Base Wage</th>
                 <th className="py-4 px-6 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>

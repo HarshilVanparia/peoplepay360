@@ -1,9 +1,12 @@
 import { getEmployeeHubData } from '../../../../actions/employees';
 import { FileText, Clock, CalendarDays, Briefcase, Building, Mail, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
 export default async function EmployeeHub({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const session = await getServerSession(authOptions); const canEdit=['HR Manager','HR Payroll User','HR Payroll Manager','Admin'].includes((session?.user as any)?.role);
   const { employee, stats, pay, balances } = await getEmployeeHubData(id);
 
   return (
@@ -39,6 +42,7 @@ export default async function EmployeeHub({ params }: { params: Promise<{ id: st
             </div>
           </div>
           <div className="flex flex-col items-end gap-3">
+            {canEdit && <Link href={`/employees/${id}/edit`} className="rounded-lg border border-violet-400/40 px-3 py-2 text-xs font-bold text-violet-200">Edit employee</Link>}
             <span className={`inline-flex items-center px-4 py-1.5 rounded-full text-sm font-bold border ${
               employee.status === 'Active' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-100 text-gray-700 border-gray-200'
             }`}>

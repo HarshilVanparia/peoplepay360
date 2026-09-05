@@ -41,7 +41,7 @@ export default function NewTimeOffRequest() {
 
         <form onSubmit={handleSubmit} className="bg-white border border-slate-200 rounded-xl p-8 shadow-sm space-y-6">
           <div className="grid grid-cols-1 gap-5">
-            <div className="grid grid-cols-3 gap-3">{leaveTypes.map(t => <div key={t.id} className="rounded-lg border border-slate-200 p-3"><p className="text-xs text-slate-400">{t.name}</p><p className="mt-1 text-lg font-bold">{Number(t.remaining_days).toFixed(1)} days</p><p className="text-xs text-violet-300">{t.payroll_treatment}</p></div>)}</div>
+            <div className="grid grid-cols-3 gap-3">{leaveTypes.map(t => <div key={t.id} className="rounded-lg border border-slate-200 p-3"><p className="text-xs text-slate-400">{t.name}</p><p className="mt-1 text-lg font-bold">{Number(t.remaining_days).toFixed(0)} days</p><p className="text-xs text-violet-300">{t.payroll_treatment}</p></div>)}</div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Leave Type</label>
               <select required className="w-full border border-slate-300 rounded-lg p-2.5 text-sm" onChange={e => setFormData({...formData, leave_type_id: e.target.value})}>

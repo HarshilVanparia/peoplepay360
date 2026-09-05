@@ -17,7 +17,7 @@ export default withAuth(
 
     // 2. Block standard Employees from HR Master Data[cite: 2]
     if (
-      (path.startsWith('/employees') || path.startsWith('/contracts') || path.startsWith('/schedules') || path.startsWith('/attendance')) &&
+      (path.startsWith('/employees') || path.startsWith('/contracts') || path.startsWith('/schedules')) &&
       !['HR Manager', 'HR Payroll User', 'HR Payroll Manager', 'Admin'].includes(role)
     ) {
       return NextResponse.redirect(new URL('/', req.url));

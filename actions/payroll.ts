@@ -92,9 +92,10 @@ export async function getPayrunDetails(payrunId: string) {
     WHERE p.id = ?`, [payrunId]);
 
   const payslips = await query(`
-    SELECT ps.*, e.first_name, e.last_name, e.bank_account_no
+    SELECT ps.*, e.first_name, e.last_name, e.bank_account_no, e.department, e.job_position, pr.period_start, pr.period_end
     FROM payslips ps
     JOIN employees e ON ps.employee_id = e.id
+    JOIN payruns pr ON pr.id = ps.payrun_id
     WHERE ps.payrun_id = ?
   `, [payrunId]);
 
