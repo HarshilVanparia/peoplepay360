@@ -1,7 +1,6 @@
 'use server';
 
 import { query } from '../lib/db';
-import { v4 as uuidv4 } from 'uuid';
 import { revalidatePath } from 'next/cache';
 
 export async function getAttendance(employeeId?: string) {
@@ -39,8 +38,8 @@ export async function saveAttendanceCorrection(data: any) {
     );
   } else {
     await query(
-      `INSERT INTO attendance (id, employee_id, check_in, check_out, worked_hours, status) VALUES (?, ?, ?, ?, ?, ?)`,
-      [uuidv4(), data.employee_id, formatForDb(data.check_in), formatForDb(data.check_out), workedHours.toFixed(2), data.status]
+      `INSERT INTO attendance (employee_id, check_in, check_out, check_out_status, worked_hours, status) VALUES (?, ?, ?, IF(? IS NULL, NULL, 'Offline'), ?, ?)`,
+      [data.employee_id, formatForDb(data.check_in), formatForDb(data.check_out), formatForDb(data.check_out), workedHours.toFixed(2), data.status]
     );
   }
   revalidatePath('/attendance');

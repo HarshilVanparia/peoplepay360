@@ -2,7 +2,6 @@
 
 import { query, transaction } from '../lib/db';
 import { revalidatePath } from 'next/cache';
-import { v4 as uuidv4 } from 'uuid';
 
 // 1. Wizard Step 2: Filters eligible staff for explicit user selection[cite: 2].
 export async function getEligibleEmployees(periodStart: string, periodEnd: string, structureId: string) {
@@ -20,13 +19,12 @@ export async function getEligibleEmployees(periodStart: string, periodEnd: strin
 // 2. Wizard Final Step: Computes payslips for selected employees[cite: 2].
 export async function generatePayrun(data: any, selectedEmployeeIds: string[]) {
   return await transaction(async (conn) => {
-    const payrunId = uuidv4();
-    
-    await conn.execute(
-      `INSERT INTO payruns (id, name, salary_structure_id, period_start, period_end, status) 
-       VALUES (?, ?, ?, ?, ?, 'Draft')`,
-      [payrunId, data.name, data.structureId, data.periodStart, data.periodEnd]
+    const [payrunResult]: any = await conn.execute(
+      `INSERT INTO payruns (name, salary_structure_id, period_start, period_end, status) 
+       VALUES (?, ?, ?, ?, 'Computed')`,
+      [data.name, data.structureId, data.periodStart, data.periodEnd]
     );
+    const payrunId = payrunResult.insertId;
 
     const [rules] = await conn.execute(
       `SELECT * FROM salary_rules WHERE structure_id = ? ORDER BY sequence ASC`,
@@ -35,8 +33,8 @@ export async function generatePayrun(data: any, selectedEmployeeIds: string[]) {
 
     for (const empId of selectedEmployeeIds) {
       const [contracts] = await conn.execute(
-        `SELECT id, wage FROM contracts WHERE employee_id = ? AND status = 'Active' LIMIT 1`,
-        [empId]
+        `SELECT id, wage FROM contracts WHERE employee_id = ? AND status = 'Active' AND start_date <= ? AND (end_date IS NULL OR end_date >= ?) ORDER BY start_date DESC LIMIT 1`,
+        [empId, data.periodEnd, data.periodStart]
       ) as any[];
       
       const contract = contracts[0];
@@ -59,13 +57,15 @@ export async function generatePayrun(data: any, selectedEmployeeIds: string[]) {
       }
 
       const net = gross - deductions;
-      const payslipId = uuidv4();
-
-      await conn.execute(
-        `INSERT INTO payslips (id, payrun_id, employee_id, contract_id, basic_wage, gross_salary, deductions, net_salary) 
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [payslipId, payrunId, empId, contract.id, basic, gross, deductions, net]
+      const [payslipResult]: any = await conn.execute(
+        `INSERT INTO payslips (payrun_id, employee_id, contract_id, basic_wage, gross_salary, deductions, net_salary, status) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, 'Computed')`,
+        [payrunId, empId, contract.id, basic, gross, deductions, net]
       );
+      for (const rule of rules) {
+        const amount = rule.calculation_type === 'PERCENTAGE' ? basic * (Number(rule.amount_value) / 100) : Number(rule.amount_value);
+        await conn.execute(`INSERT INTO payslip_line_items (payslip_id, rule_id, rule_name, rule_code, category, amount, sequence) VALUES (?, ?, ?, ?, ?, ?, ?)`, [payslipResult.insertId, rule.id, rule.name, rule.code, rule.category, amount, rule.sequence]);
+      }
     }
 
     revalidatePath('/payroll/payruns');

@@ -1,7 +1,6 @@
 'use server';
 
 import { query, transaction } from '../lib/db';
-import { v4 as uuidv4 } from 'uuid';
 import { revalidatePath } from 'next/cache';
 
 export async function getContracts(employeeId?: string) {
@@ -27,16 +26,15 @@ export async function createContract(data: any) {
         [data.employee_id]
       );
     }
-    const id = uuidv4();
-    await conn.execute(
-      `INSERT INTO contracts (id, employee_id, wage, salary_structure_id, start_date, end_date, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    const [result]: any = await conn.execute(
+      `INSERT INTO contracts (employee_id, contract_number, department, job_position, employment_type, schedule_id, wage, salary_structure_id, start_date, end_date, status)
+       SELECT ?, CONCAT('CTR-', ?, '-', DATE_FORMAT(?, '%Y%m%d')), department, job_position, employment_type, schedule_id, ?, ?, ?, ?, ? FROM employees WHERE id = ?`,
       [
-        id, data.employee_id, data.wage, data.salary_structure_id, 
-        data.start_date, data.end_date || null, data.status
+        data.employee_id, data.employee_id, data.start_date, data.wage, data.salary_structure_id,
+        data.start_date, data.end_date || null, data.status, data.employee_id
       ]
     );
     revalidatePath('/contracts');
-    return id;
+    return result.insertId;
   });
 }

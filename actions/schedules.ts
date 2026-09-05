@@ -1,7 +1,6 @@
 'use server';
 
 import { query } from '../lib/db';
-import { v4 as uuidv4 } from 'uuid';
 import { revalidatePath } from 'next/cache';
 
 export async function getSchedules() {
@@ -13,14 +12,13 @@ export async function getSchedules() {
   `);
 }
 
-export async function createSchedule(data: { name: string, days: number, hoursPerDay: number }) {
-  const id = uuidv4();
+export async function createSchedule(data: { name: string, days: number, hoursPerDay: number, scheduleType?: 'Fixed' | 'Flexible' | 'Full Flexible' }) {
   // Automatically calculates weekly hours based on pattern (Days * Hours)
   const weeklyHours = data.days * data.hoursPerDay; 
   
   await query(
-    `INSERT INTO working_schedules (id, name, weekly_hours) VALUES (?, ?, ?)`,
-    [id, data.name, weeklyHours]
+    `INSERT INTO working_schedules (name, schedule_type, weekly_hours) VALUES (?, ?, ?)`,
+    [data.name, data.scheduleType || 'Fixed', weeklyHours]
   );
   
   revalidatePath('/schedules');

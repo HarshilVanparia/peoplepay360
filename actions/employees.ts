@@ -1,14 +1,14 @@
 'use server';
 
 import { query } from '../lib/db';
-import { v4 as uuidv4 } from 'uuid';
+import { transaction } from '../lib/db';
 import { revalidatePath } from 'next/cache';
 
 export async function getEmployees() {
   return await query(`SELECT * FROM employees ORDER BY created_at DESC`);
 }
 
-export async function getEmployeeHubData(id: string) {
+export async function getEmployeeHubData(id: string | number) {
   const [employee] = await query(`SELECT * FROM employees WHERE id = ?`, [id]) as any[];
   const [stats] = await query(`
     SELECT 
@@ -20,16 +20,42 @@ export async function getEmployeeHubData(id: string) {
 }
 
 export async function createEmployee(data: any) {
-  const id = uuidv4();
-  await query(
+  const result: any = await query(
     `INSERT INTO employees (id, first_name, last_name, email, system_role, department, job_position, employment_type, status, schedule_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
-      id, data.first_name, data.last_name, data.email, data.system_role, 
+      data.first_name, data.last_name, data.email, data.system_role, 
       data.department, data.job_position, data.employment_type, data.status, 
       data.schedule_id || null
     ]
   );
   revalidatePath('/employees');
-  return id;
+  return result.insertId;
+}
+
+export async function createEmployeesBulk(records: Array<Record<string, string>>) {
+  if (!Array.isArray(records) || records.length === 0 || records.length > 100) throw new Error('Upload 1 to 100 employees at a time.');
+  const allowedRoles = new Set(['Employee', 'HR Manager', 'HR Payroll User', 'HR Payroll Manager', 'Admin']);
+  const emails = new Set<string>();
+  for (const record of records) {
+    const email = String(record.email || '').trim().toLowerCase();
+    if (!record.first_name?.trim() || !record.last_name?.trim() || !email.includes('@') || !record.department?.trim() || !record.job_position?.trim()) throw new Error('Every row needs first_name last_name email department and job_position.');
+    if (emails.has(email)) throw new Error(`Duplicate email in upload ${email}`);
+    emails.add(email);
+    if (record.system_role && !allowedRoles.has(record.system_role)) throw new Error(`Invalid role for ${email}`);
+  }
+  const created = await transaction(async (conn) => {
+    let count = 0;
+    for (const record of records) {
+      const [result]: any = await conn.execute(
+        `INSERT INTO employees (first_name,last_name,email,password,system_role,department,job_position,employment_type,status,schedule_id,alloted_leves)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Active', ?, ?)` ,
+        [record.first_name.trim(), record.last_name.trim(), record.email.trim().toLowerCase(), record.password?.trim() || 'demo123', record.system_role || 'Employee', record.department.trim(), record.job_position.trim(), record.employment_type || 'Full-Time', record.schedule_id ? Number(record.schedule_id) : null, Number(record.alloted_leves || 0)]
+      );
+      if (result.affectedRows) count++;
+    }
+    return count;
+  });
+  revalidatePath('/employees');
+  return created;
 }

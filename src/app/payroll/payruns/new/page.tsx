@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { getEligibleEmployees, generatePayrun } from '../../../../../actions/payroll';
+import { getSalaryStructures } from '../../../../../actions/salary-structures';
 import { useRouter } from 'next/navigation';
 import { CheckSquare, ArrowRight, UserCheck } from 'lucide-react';
 
@@ -9,9 +10,12 @@ export default function NewPayrunWizard() {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({ name: '', periodStart: '', periodEnd: '', structureId: 'struct-standard' });
+  const [formData, setFormData] = useState({ name: '', periodStart: '', periodEnd: '', structureId: '' });
+  const [structures, setStructures] = useState<any[]>([]);
   const [eligibleStaff, setEligibleStaff] = useState<any[]>([]);
   const [selectedStaff, setSelectedStaff] = useState<string[]>([]);
+
+  useEffect(() => { getSalaryStructures().then(setStructures); }, []);
 
   const handleScopeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,6 +47,13 @@ export default function NewPayrunWizard() {
                   <label className="block text-sm font-medium text-slate-700 mb-1">Batch Name</label>
                   <input required type="text" className="w-full border border-slate-300 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500" 
                     onChange={e => setFormData({...formData, name: e.target.value})} placeholder="e.g., September 2026 Payroll" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Salary Structure</label>
+                  <select required value={formData.structureId} onChange={e => setFormData({...formData, structureId: e.target.value})} className="w-full border border-slate-300 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">Select structure...</option>
+                    {structures.filter(s => s.is_active).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Start Date</label>
