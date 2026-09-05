@@ -2,11 +2,11 @@
 const nextConfig = {
   experimental: {
     serverActions: {
-      allowedOrigins: ['192.168.43.91'],
+      allowedOrigins: ['192.168.9.220'],
     },
   },
   // Allows HMR (Hot Module Replacement) across your local network
-  allowedDevOrigins: ['192.168.43.91'],
+  allowedDevOrigins: ['192.168.9.220', 'localhost'],
 };
 
 module.exports = nextConfig;

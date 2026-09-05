@@ -1,10 +1,11 @@
 // src/app/contracts/page.tsx
 import { getContracts } from '../../../actions/contracts';
-import { FileText, Plus, CheckCircle2, AlertCircle } from 'lucide-react';
+import { FileText, Plus, CheckCircle2, AlertCircle, Pencil } from 'lucide-react';
 import Link from 'next/link';
 
-export default async function ContractsPage({ searchParams }: { searchParams: { employee?: string } }) {
-  const contracts = await getContracts(searchParams.employee);
+export default async function ContractsPage({ searchParams }: { searchParams: Promise<{ employee?: string }> }) {
+  const params = await searchParams;
+  const contracts = await getContracts(params.employee);
 
   return (
     <div className="min-h-screen bg-slate-50 p-8">
@@ -16,9 +17,9 @@ export default async function ContractsPage({ searchParams }: { searchParams: { 
               Historical agreements and active period wages used for payroll computation.
             </p>
           </div>
-          <button className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-lg hover:bg-blue-700 transition font-medium text-sm shadow-sm">
+          <Link href="/contracts/new" className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-lg hover:bg-blue-700 transition font-medium text-sm shadow-sm">
             <Plus size={16} /> New Contract
-          </button>
+          </Link>
         </div>
 
         <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
@@ -31,12 +32,13 @@ export default async function ContractsPage({ searchParams }: { searchParams: { 
                 <th className="py-4 px-6 text-xs font-bold text-slate-500 uppercase tracking-wider">Period</th>
                 <th className="py-4 px-6 text-xs font-bold text-slate-500 uppercase tracking-wider">Base Wage</th>
                 <th className="py-4 px-6 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
+                <th className="py-4 px-6 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Edit</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {contracts.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-slate-400 text-sm">
+                  <td colSpan={7} className="py-8 text-center text-slate-400 text-sm">
                     No contract records found. Seed records via MySQL Workbench to populate.
                   </td>
                 </tr>
@@ -71,6 +73,7 @@ export default async function ContractsPage({ searchParams }: { searchParams: { 
                         {c.status}
                       </span>
                     </td>
+                    <td className="py-4 px-6 text-right"><Link href={`/contracts/new?edit=${c.id}`} className="inline-flex p-2 rounded-lg text-violet-300 hover:bg-violet-500/10" title="Edit contract"><Pencil size={16}/></Link></td>
                   </tr>
                 ))
               )}

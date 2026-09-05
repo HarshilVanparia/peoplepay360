@@ -1,6 +1,6 @@
 import { getEmployees } from '../../../actions/employees';
 import Link from 'next/link';
-import { Users, Briefcase, Plus, Search, Building, Upload } from 'lucide-react';
+import { Users, Briefcase, Plus, Search, Building } from 'lucide-react';
 
 export default async function EmployeesPage() {
   const employees = await getEmployees();
@@ -18,7 +18,6 @@ export default async function EmployeesPage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
               <input type="text" placeholder="Search employees..." className="pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none w-64" />
             </div>
-            <Link href="/employees/import" className="flex items-center gap-2 border border-violet-400/40 text-violet-200 px-4 py-2.5 rounded-lg hover:bg-violet-500/10 text-sm font-medium"><Upload size={16} /> Import</Link>
             <Link href="/employees/new" className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-lg hover:bg-blue-700 transition-all font-medium text-sm shadow-sm">
               <Plus size={16} /> New Employee
             </Link>

@@ -1,21 +1,22 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { getAttendanceRecord, saveAttendanceCorrection } from '../../../../actions/attendance';
 import { getEmployees } from '../../../../actions/employees';
 import { Clock, ArrowLeft, Save, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 
-export default function AttendanceCorrectionForm({ params }: { params: { id: string } }) {
+export default function AttendanceCorrectionForm({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = use(params);
   const router = useRouter();
-  const isNew = params.id === 'new';
+  const isNew = resolvedParams.id === 'new';
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [employees, setEmployees] = useState<any[]>([]);
   const [formData, setFormData] = useState({
-    id: isNew ? '' : params.id,
+    id: isNew ? '' : resolvedParams.id,
     employee_id: '',
     check_in: '',
     check_out: '',
@@ -28,7 +29,7 @@ export default function AttendanceCorrectionForm({ params }: { params: { id: str
         const emps = await getEmployees();
         setEmployees(emps);
       } else {
-        const record = await getAttendanceRecord(params.id);
+        const record = await getAttendanceRecord(resolvedParams.id);
         if (record) {
           setFormData({
             id: record.id,
@@ -43,7 +44,7 @@ export default function AttendanceCorrectionForm({ params }: { params: { id: str
       setLoading(false);
     }
     loadData();
-  }, [params.id, isNew]);
+  }, [resolvedParams.id, isNew]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

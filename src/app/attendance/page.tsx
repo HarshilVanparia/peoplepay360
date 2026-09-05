@@ -2,8 +2,9 @@ import { getAttendance } from '../../../actions/attendance';
 import { Clock, Filter, Download, Edit } from 'lucide-react';
 import Link from 'next/link';
 
-export default async function AttendanceList({ searchParams }: { searchParams: { employee?: string } }) {
-  const attendance = await getAttendance(searchParams.employee);
+export default async function AttendanceList({ searchParams }: { searchParams: Promise<{ employee?: string }> }) {
+  const params = await searchParams;
+  const attendance = await getAttendance(params.employee);
 
   return (
     <div className="min-h-screen bg-slate-50 p-8">

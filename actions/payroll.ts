@@ -102,8 +102,13 @@ export async function getPayrunDetails(payrunId: string) {
 }
 
 // 5. Processing Actions: Validate and Mark Paid[cite: 2].
-export async function updatePayrunStatus(payrunId: string, status: 'Validated' | 'Paid') {
-  await query(`UPDATE payruns SET status = ? WHERE id = ?`, [status, payrunId]);
-  await query(`UPDATE payslips SET status = ? WHERE payrun_id = ?`, [status, payrunId]);
+export async function updatePayrunStatus(payrunId: string, status: 'Validated' | 'Paid', selectedPayslipIds?: number[]) {
+  const ids = (selectedPayslipIds || []).map(Number).filter(Number.isInteger);
+  if (!ids.length) throw new Error('Select at least one payslip.');
+  const placeholders = ids.map(() => '?').join(',');
+  await query(`UPDATE payslips SET status = ? WHERE payrun_id = ? AND id IN (${placeholders})`, [status, payrunId, ...ids]);
+  const [summary]: any = await query(`SELECT COUNT(*) AS total, SUM(status='Paid') AS paid, SUM(status='Validated') AS validated FROM payslips WHERE payrun_id=?`, [payrunId]);
+  const batchStatus = Number(summary.paid) === Number(summary.total) ? 'Paid' : Number(summary.validated) > 0 || Number(summary.paid) > 0 ? 'Validated' : 'Computed';
+  await query(`UPDATE payruns SET status = ? WHERE id = ?`, [batchStatus, payrunId]);
   revalidatePath(`/payroll/payruns/${payrunId}`);
 }

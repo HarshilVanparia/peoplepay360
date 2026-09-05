@@ -2,15 +2,23 @@ import { query } from '../../../../lib/db';
 import { Check, X, Calendar, Plus } from 'lucide-react';
 import { approveTimeOffRequest } from '../../../../actions/time-off';
 import { revalidatePath } from 'next/cache';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import Link from 'next/link';
 
 export default async function TimeOffRequestsPage() {
+  const session = await getServerSession(authOptions);
+  const role = (session?.user as any)?.role;
+  const canManage = ['HR Manager', 'HR Payroll User', 'HR Payroll Manager', 'Admin'].includes(role);
+  const employeeId = (session?.user as any)?.id;
   const requests = await query(`
     SELECT r.*, e.first_name, e.last_name, t.name as type_name 
     FROM leave_requests r
     JOIN employees e ON r.employee_id = e.id
     JOIN leave_types t ON r.leave_type_id = t.id
+    ${canManage ? '' : 'WHERE r.employee_id = ?'}
     ORDER BY r.start_date DESC
-  `);
+  `, canManage ? [] : [employeeId]);
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">
@@ -20,9 +28,9 @@ export default async function TimeOffRequestsPage() {
             <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Time Off Requests</h1>
             <p className="text-sm text-gray-500 mt-1">Approve or refuse leave requests linked to allocations[cite: 1].</p>
           </div>
-          <button className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-lg hover:bg-blue-700 transition-all font-medium text-sm shadow-sm">
+          <Link href="/time-off/requests/new" className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-lg hover:bg-blue-700 transition-all font-medium text-sm shadow-sm">
             <Plus size={16} /> New Request
-          </button>
+          </Link>
         </div>
 
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
@@ -33,7 +41,7 @@ export default async function TimeOffRequestsPage() {
                 <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Leave Type</th>
                 <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Duration</th>
                 <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Actions</th>
+                {canManage && <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Actions</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -57,7 +65,7 @@ export default async function TimeOffRequestsPage() {
                       {req.status}
                     </span>
                   </td>
-                  <td className="py-4 px-6 text-right">
+                  {canManage && <td className="py-4 px-6 text-right">
                      {req.status === 'Pending' && (
                        <div className="flex justify-end gap-2">
                           <form action={async () => { 
@@ -79,7 +87,7 @@ export default async function TimeOffRequestsPage() {
                           </form>
                        </div>
                      )}
-                  </td>
+                  </td>}
                 </tr>
               ))}
             </tbody>

@@ -9,24 +9,26 @@ export async function getEmployees() {
 }
 
 export async function getEmployeeHubData(id: string | number) {
-  const [employee] = await query(`SELECT * FROM employees WHERE id = ?`, [id]) as any[];
+  const [employee] = await query(`SELECT e.*, ws.name AS schedule_name, CONCAT(m.first_name, ' ', m.last_name) AS manager_name FROM employees e LEFT JOIN working_schedules ws ON ws.id=e.schedule_id LEFT JOIN employees m ON m.id=e.manager_id WHERE e.id = ?`, [id]) as any[];
   const [stats] = await query(`
     SELECT 
       (SELECT COUNT(*) FROM contracts WHERE employee_id = ?) as contractCount,
       (SELECT COUNT(*) FROM attendance WHERE employee_id = ?) as attendanceCount,
       (SELECT COUNT(*) FROM leave_allocations WHERE employee_id = ?) as leaveCount
   `, [id, id, id]) as any[];
-  return { employee, stats };
+  const [pay] = await query(`SELECT wage,wage_period FROM contracts WHERE employee_id=? AND status='Active' ORDER BY start_date DESC LIMIT 1`, [id]) as any[];
+  const balances = await query(`SELECT t.name,COALESCE(SUM(a.remaining_days),0) AS remaining FROM leave_types t LEFT JOIN leave_allocations a ON a.leave_type_id=t.id AND a.employee_id=? AND a.status='Approved' GROUP BY t.id,t.name ORDER BY t.name`, [id]);
+  return { employee, stats, pay, balances };
 }
 
 export async function createEmployee(data: any) {
   const result: any = await query(
-    `INSERT INTO employees (id, first_name, last_name, email, system_role, department, job_position, employment_type, status, schedule_id)
-     VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO employees (first_name, last_name, email, password, system_role, department, job_position, employment_type, status, schedule_id, manager_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
-      data.first_name, data.last_name, data.email, data.system_role, 
+      data.first_name, data.last_name, data.email, data.password || 'demo123', data.system_role, 
       data.department, data.job_position, data.employment_type, data.status, 
-      data.schedule_id || null
+      data.schedule_id || null, data.manager_id || null
     ]
   );
   revalidatePath('/employees');

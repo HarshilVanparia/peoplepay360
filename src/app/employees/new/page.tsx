@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createEmployee } from '../../../../actions/employees';
 import { getSchedules } from '../../../../actions/schedules';
+import { getEmployees } from '../../../../actions/employees';
 import { UserPlus, ArrowLeft, Save } from 'lucide-react';
 import Link from 'next/link';
 
@@ -11,15 +12,17 @@ export default function NewEmployeeForm() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [schedules, setSchedules] = useState<any[]>([]);
+  const [managers, setManagers] = useState<any[]>([]);
   const [formData, setFormData] = useState({
     first_name: '', last_name: '', email: '',
     system_role: 'Employee', department: 'Engineering',
     job_position: '', employment_type: 'Full-Time',
-    status: 'Active', schedule_id: ''
+    status: 'Active', schedule_id: '', manager_id: ''
   });
 
   useEffect(() => {
     getSchedules().then(setSchedules);
+    getEmployees().then(setManagers);
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -88,6 +91,13 @@ export default function NewEmployeeForm() {
                 <select className="w-full border border-slate-300 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500"
                   onChange={e => setFormData({...formData, system_role: e.target.value})}>
                   {['Employee', 'HR Manager', 'HR Payroll User', 'HR Payroll Manager', 'Admin'].map(r => <option key={r} value={r}>{r}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Reporting Manager</label>
+                <select className="w-full border border-slate-300 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500" onChange={e => setFormData({...formData, manager_id: e.target.value})}>
+                  <option value="">No manager assigned</option>
+                  {managers.filter(m => m.system_role !== 'Employee').map(m => <option key={m.id} value={m.id}>{m.first_name} {m.last_name} - {m.job_position}</option>)}
                 </select>
               </div>
               <div>

@@ -2,8 +2,9 @@ import { getEmployeeHubData } from '../../../../actions/employees';
 import { FileText, Clock, CalendarDays, Briefcase, Building, Mail, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 
-export default async function EmployeeHub({ params }: { params: { id: string } }) {
-  const { employee, stats } = await getEmployeeHubData(params.id);
+export default async function EmployeeHub({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const { employee, stats, pay, balances } = await getEmployeeHubData(id);
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">
@@ -14,6 +15,13 @@ export default async function EmployeeHub({ params }: { params: { id: string } }
           <ChevronRight size={14} />
           <span className="text-gray-900 font-medium">{employee.first_name} {employee.last_name}</span>
         </div>
+
+        <div className="grid md:grid-cols-3 gap-5">
+          <div className="bg-white rounded-xl border border-gray-200 p-5"><p className="text-xs uppercase tracking-wider text-slate-500">Working schedule</p><p className="mt-2 font-bold text-lg">{employee.schedule_name || 'Not assigned'}</p><p className="mt-1 text-sm text-slate-500">{employee.employment_type}</p></div>
+          <div className="bg-white rounded-xl border border-gray-200 p-5"><p className="text-xs uppercase tracking-wider text-slate-500">Reporting manager</p><p className="mt-2 font-bold text-lg">{employee.manager_name || 'Not assigned'}</p><p className="mt-1 text-sm text-slate-500">Department {employee.department}</p></div>
+          <div className="bg-white rounded-xl border border-gray-200 p-5"><p className="text-xs uppercase tracking-wider text-slate-500">Banking status</p><p className="mt-2 font-bold text-lg">{employee.bank_account_no ? 'Ready for payroll' : 'Bank details missing'}</p><p className="mt-1 text-sm text-slate-500">{employee.bank_name || 'No bank selected'}</p></div>
+        </div>
+        <div className="grid md:grid-cols-4 gap-4">{balances.map((balance:any)=><div key={balance.name} className="rounded-xl border border-slate-200 p-4"><p className="text-xs text-slate-400">{balance.name}</p><p className="mt-2 text-2xl font-bold">{Number(balance.remaining).toFixed(1)} days</p></div>)}<div className="rounded-xl border border-slate-200 p-4"><p className="text-xs text-slate-400">Current salary</p><p className="mt-2 text-2xl font-bold">{pay ? `$${Number(pay.wage).toLocaleString()}` : 'No active contract'}</p><p className="text-xs text-slate-400">{pay?.wage_period || ''}</p></div></div>
 
         {/* Identity Header Card */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">

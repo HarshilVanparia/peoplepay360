@@ -2,22 +2,18 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getEmployees } from '../../../../../actions/employees';
-import { getLeaveTypes } from '../../../../../actions/time-off-admin';
-import { createTimeOffRequest } from '../../../../../actions/time-off';
+import { createTimeOffRequest, getMyLeaveContext } from '../../../../../actions/time-off';
 import { Calendar, ArrowLeft, Save } from 'lucide-react';
 import Link from 'next/link';
 
 export default function NewTimeOffRequest() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [employees, setEmployees] = useState<any[]>([]);
   const [leaveTypes, setLeaveTypes] = useState<any[]>([]);
-  const [formData, setFormData] = useState({ employee_id: '', leave_type_id: '', start_date: '', end_date: '', duration_days: 0 });
+  const [formData, setFormData] = useState({ leave_type_id: '', start_date: '', end_date: '', duration_days: 0 });
 
   useEffect(() => {
-    getEmployees().then(setEmployees);
-    getLeaveTypes().then(setLeaveTypes);
+    getMyLeaveContext().then(setLeaveTypes);
   }, []);
 
   const calculateDuration = (start: string, end: string) => {
@@ -45,13 +41,7 @@ export default function NewTimeOffRequest() {
 
         <form onSubmit={handleSubmit} className="bg-white border border-slate-200 rounded-xl p-8 shadow-sm space-y-6">
           <div className="grid grid-cols-1 gap-5">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Employee</label>
-              <select required className="w-full border border-slate-300 rounded-lg p-2.5 text-sm" onChange={e => setFormData({...formData, employee_id: e.target.value})}>
-                <option value="">Select Employee...</option>
-                {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name}</option>)}
-              </select>
-            </div>
+            <div className="grid grid-cols-3 gap-3">{leaveTypes.map(t => <div key={t.id} className="rounded-lg border border-slate-200 p-3"><p className="text-xs text-slate-400">{t.name}</p><p className="mt-1 text-lg font-bold">{Number(t.remaining_days).toFixed(1)} days</p><p className="text-xs text-violet-300">{t.payroll_treatment}</p></div>)}</div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Leave Type</label>
               <select required className="w-full border border-slate-300 rounded-lg p-2.5 text-sm" onChange={e => setFormData({...formData, leave_type_id: e.target.value})}>

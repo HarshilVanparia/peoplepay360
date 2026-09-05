@@ -2,8 +2,18 @@ import { query } from '../../lib/db';
 import { Users, Banknote, CalendarDays, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { DashboardCharts } from './components/DashboardCharts';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
 export default async function PayrollDashboard() {
+  const session = await getServerSession(authOptions);
+  const role = (session?.user as any)?.role;
+  const employeeId = (session?.user as any)?.id;
+  if (role === 'Employee') {
+    const balances = await query(`SELECT t.name, COALESCE(SUM(a.remaining_days),0) AS remaining FROM leave_types t LEFT JOIN leave_allocations a ON a.leave_type_id=t.id AND a.employee_id=? AND a.status='Approved' GROUP BY t.id,t.name ORDER BY t.name`, [employeeId]) as any[];
+    const attendance = await query(`SELECT COUNT(*) AS present, COALESCE(SUM(worked_hours),0) AS hours FROM attendance WHERE employee_id=? AND MONTH(check_in)=MONTH(CURDATE())`, [employeeId]) as any[];
+    return <div className="space-y-7"><div><p className="text-xs tracking-[.2em] text-violet-300">MY WORKSPACE</p><h1 className="text-3xl font-bold">Welcome back {session?.user?.name}</h1><p className="mt-2 text-sm text-slate-400">Your current leave balance and attendance summary.</p></div><div className="grid md:grid-cols-3 gap-5">{balances.map(balance=><div key={balance.name} className="rounded-2xl border border-slate-200 p-6"><p className="text-sm text-slate-400">{balance.name}</p><p className="mt-3 text-4xl font-bold">{Number(balance.remaining).toFixed(1)} <span className="text-base text-slate-400">days</span></p></div>)}<div className="rounded-2xl border border-slate-200 p-6"><p className="text-sm text-slate-400">This month</p><p className="mt-3 text-4xl font-bold">{attendance[0]?.present || 0}</p><p className="text-sm text-slate-400">attendance records</p></div></div></div>;
+  }
   const [metrics] = await query(`
     SELECT 
       (SELECT COUNT(*) FROM employees WHERE status = 'Active') as active_employees,

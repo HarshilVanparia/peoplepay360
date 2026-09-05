@@ -2,6 +2,8 @@
 
 import { query, transaction } from '../lib/db';
 import { revalidatePath } from 'next/cache';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '../src/app/api/auth/[...nextauth]/route';
 
 export async function approveTimeOffRequest(requestId: string, employeeId: string, leaveTypeId: string, durationDays: number) {
   await transaction(async (conn) => {
@@ -22,10 +24,19 @@ export async function approveTimeOffRequest(requestId: string, employeeId: strin
 }
 
 export async function createTimeOffRequest(data: any) {
+  const session = await getServerSession(authOptions);
+  const employeeId = (session?.user as any)?.id;
+  if (!employeeId) throw new Error('You must be signed in.');
   await query(
     `INSERT INTO leave_requests (employee_id, leave_type_id, start_date, end_date, duration_days, status) 
      VALUES (?, ?, ?, ?, ?, 'Pending')`,
-    [data.employee_id, data.leave_type_id, data.start_date, data.end_date, data.duration_days]
+    [employeeId, data.leave_type_id, data.start_date, data.end_date, data.duration_days]
   );
   revalidatePath('/time-off/requests');
+}
+
+export async function getMyLeaveContext() {
+  const session = await getServerSession(authOptions); const employeeId = (session?.user as any)?.id;
+  if (!employeeId) throw new Error('You must be signed in.');
+  return query(`SELECT t.id,t.name,t.payroll_treatment,COALESCE(SUM(a.remaining_days),0) AS remaining_days FROM leave_types t LEFT JOIN leave_allocations a ON a.leave_type_id=t.id AND a.employee_id=? AND a.status='Approved' GROUP BY t.id,t.name,t.payroll_treatment ORDER BY t.name`, [employeeId]);
 }
