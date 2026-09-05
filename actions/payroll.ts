@@ -113,3 +113,78 @@ export async function updatePayrunStatus(payrunId: string, status: 'Validated' |
   await query(`UPDATE payruns SET status = ? WHERE id = ?`, [batchStatus, payrunId]);
   revalidatePath(`/payroll/payruns/${payrunId}`);
 }
+
+export async function recomputePayrun(payrunId: string) {
+  return await transaction(async (conn) => {
+    const [payrunRows]: any = await conn.execute(
+      `SELECT * FROM payruns WHERE id = ?`,
+      [payrunId]
+    )
+    const payrun = payrunRows[0]
+    if (!payrun) throw new Error('Payrun not found')
+
+    const [rules] = await conn.execute(
+      `SELECT * FROM salary_rules WHERE structure_id = ? ORDER BY sequence ASC`,
+      [payrun.salary_structure_id]
+    ) as any[]
+
+    const [payslips] = await conn.execute(
+      `SELECT * FROM payslips WHERE payrun_id = ?`,
+      [payrunId]
+    ) as any[]
+
+    for (const ps of payslips) {
+      const [contracts] = await conn.execute(
+        `SELECT id, wage FROM contracts WHERE employee_id = ? AND status = 'Active' AND start_date <= ? AND (end_date IS NULL OR end_date >= ?) ORDER BY start_date DESC LIMIT 1`,
+        [ps.employee_id, payrun.period_end, payrun.period_start]
+      ) as any[]
+
+      const contract = contracts[0]
+      if (!contract) continue
+
+      let basic = Number(contract.wage)
+      let gross = basic
+      let deductions = 0
+
+      for (const rule of rules) {
+        let amount = 0
+        if (rule.calculation_type === 'FIXED') {
+          amount = Number(rule.amount_value)
+        } else if (rule.calculation_type === 'PERCENTAGE') {
+          amount = basic * (Number(rule.amount_value) / 100)
+        }
+
+        if (rule.category === 'ALLOWANCE') gross += amount
+        if (rule.category === 'DEDUCTION') deductions += amount
+      }
+
+      const net = gross - deductions
+
+      await conn.execute(
+        `UPDATE payslips SET basic_wage = ?, gross_salary = ?, deductions = ?, net_salary = ?, status = 'Computed', contract_id = ? WHERE id = ?`,
+        [basic, gross, deductions, net, contract.id, ps.id]
+      )
+
+      await conn.execute(
+        `DELETE FROM payslip_line_items WHERE payslip_id = ?`,
+        [ps.id]
+      )
+
+      for (const rule of rules) {
+        const amount = rule.calculation_type === 'PERCENTAGE' ? basic * (Number(rule.amount_value) / 100) : Number(rule.amount_value)
+        await conn.execute(
+          `INSERT INTO payslip_line_items (payslip_id, rule_id, rule_name, rule_code, category, amount, sequence) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          [ps.id, rule.id, rule.name, rule.code, rule.category, amount, rule.sequence]
+        )
+      }
+    }
+
+    await conn.execute(
+      `UPDATE payruns SET status = 'Computed' WHERE id = ?`,
+      [payrunId]
+    )
+
+    revalidatePath(`/payroll/payruns/${payrunId}`)
+    return true
+  })
+}

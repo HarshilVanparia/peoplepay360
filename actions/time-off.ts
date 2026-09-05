@@ -41,3 +41,9 @@ export async function getMyLeaveContext() {
   if (!employeeId) throw new Error('You must be signed in.');
   return query(`SELECT t.id,t.name,t.payroll_treatment,COALESCE(SUM(a.remaining_days),0) AS remaining_days FROM leave_types t LEFT JOIN leave_allocations a ON a.leave_type_id=t.id AND a.employee_id=? AND a.status='Approved' GROUP BY t.id,t.name,t.payroll_treatment ORDER BY t.name`, [employeeId]);
 }
+
+export async function refuseTimeOffRequest(requestId: string) {
+  await query(`UPDATE leave_requests SET status = 'Refused' WHERE id = ?`, [requestId])
+  revalidatePath('/time-off/requests')
+}
+

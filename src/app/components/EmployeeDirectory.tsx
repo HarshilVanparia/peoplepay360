@@ -1,27 +1,28 @@
-'use client';
-import { useState } from 'react';
-import Link from 'next/link';
-import { Search, Briefcase, Building, Filter, X } from 'lucide-react';
+'use client'
 
-const DEPARTMENTS = ['All Departments'] as const;
-const STATUSES = ['All Statuses', 'Active', 'On Leave', 'Inactive', 'Terminated'] as const;
+import { useState } from 'react'
+import Link from 'next/link'
+import { Search, Briefcase, Building, Filter, X, LayoutGrid, List } from 'lucide-react'
+
+const STATUSES = ['All Statuses', 'Active', 'On Leave', 'Inactive', 'Terminated'] as const
 
 export default function EmployeeDirectory({ employees }: { employees: any[] }) {
-  const [term, setTerm] = useState('');
-  const [status, setStatus] = useState('All Statuses');
-  const [dept, setDept] = useState('All Departments');
+  const [term, setTerm] = useState('')
+  const [status, setStatus] = useState('All Statuses')
+  const [dept, setDept] = useState('All Departments')
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
 
-  const departments = ['All Departments', ...Array.from(new Set(employees.map(e => e.department))).sort()];
+  const departments = ['All Departments', ...Array.from(new Set(employees.map(e => e.department).filter(Boolean))).sort()]
 
   const shown = employees.filter(e => {
     const matchTerm = `${e.first_name} ${e.last_name} ${e.email} ${e.department} ${e.job_position}`
-      .toLowerCase().includes(term.toLowerCase());
-    const matchStatus = status === 'All Statuses' || e.status === status;
-    const matchDept = dept === 'All Departments' || e.department === dept;
-    return matchTerm && matchStatus && matchDept;
-  });
+      .toLowerCase().includes(term.toLowerCase())
+    const matchStatus = status === 'All Statuses' || e.status === status
+    const matchDept = dept === 'All Departments' || e.department === dept
+    return matchTerm && matchStatus && matchDept
+  })
 
-  const hasFilters = term || status !== 'All Statuses' || dept !== 'All Departments';
+  const hasFilters = term || status !== 'All Statuses' || dept !== 'All Departments'
 
   return (
     <div className="space-y-5">
@@ -55,22 +56,41 @@ export default function EmployeeDirectory({ employees }: { employees: any[] }) {
         </select>
         {hasFilters && (
           <button
-            onClick={() => { setTerm(''); setStatus('All Statuses'); setDept('All Departments'); }}
+            onClick={() => { setTerm(''); setStatus('All Statuses'); setDept('All Departments') }}
             className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-slate-600 text-xs font-semibold text-slate-400 hover:text-white hover:border-slate-400 transition-all"
           >
             <X size={12} /> Clear
           </button>
         )}
+
+        {/* View Mode Switcher */}
+        <div className="flex gap-1 rounded-xl border border-slate-700/60 bg-slate-900/60 p-1">
+          <button
+            onClick={() => setViewMode('grid')}
+            title="Kanban Cards"
+            className={`p-1.5 rounded-lg transition-colors ${viewMode === 'grid' ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-white'}`}
+          >
+            <LayoutGrid size={16} />
+          </button>
+          <button
+            onClick={() => setViewMode('list')}
+            title="List Table"
+            className={`p-1.5 rounded-lg transition-colors ${viewMode === 'list' ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-white'}`}
+          >
+            <List size={16} />
+          </button>
+        </div>
+
         <span className="ml-auto text-sm text-slate-500 font-medium">{shown.length} of {employees.length}</span>
       </div>
 
-      {/* Grid */}
+      {/* Grid or List View */}
       {shown.length === 0 ? (
         <div className="text-center py-16 text-slate-500">
           <Search size={32} className="mx-auto mb-3 opacity-40" />
           <p className="font-medium">No employees match your search.</p>
         </div>
-      ) : (
+      ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
           {shown.map(emp => (
             <Link href={`/employees/${emp.id}`} key={emp.id} className="block group">
@@ -99,7 +119,56 @@ export default function EmployeeDirectory({ employees }: { employees: any[] }) {
             </Link>
           ))}
         </div>
+      ) : (
+        <div className="rounded-2xl border border-slate-700/60 bg-slate-900/40 overflow-hidden backdrop-blur-sm shadow-xl">
+          <table className="w-full text-left border-collapse">
+            <thead className="border-b border-slate-700/60 bg-slate-950/40">
+              <tr>
+                <th className="py-4 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider">Employee</th>
+                <th className="py-4 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider">Department</th>
+                <th className="py-4 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider">Position</th>
+                <th className="py-4 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider">Email</th>
+                <th className="py-4 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider">Status</th>
+                <th className="py-4 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800/60">
+              {shown.map(emp => (
+                <tr key={emp.id} className="hover:bg-slate-800/30 transition-colors">
+                  <td className="py-4 px-6">
+                    <div className="flex items-center gap-3">
+                      <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-violet-600 to-indigo-700 flex items-center justify-center text-white font-bold text-xs shrink-0">
+                        {emp.first_name[0]}{emp.last_name[0]}
+                      </div>
+                      <Link href={`/employees/${emp.id}`} className="font-semibold text-white hover:text-violet-300 transition-colors">
+                        {emp.first_name} {emp.last_name}
+                      </Link>
+                    </div>
+                  </td>
+                  <td className="py-4 px-6 text-sm text-slate-300">{emp.department}</td>
+                  <td className="py-4 px-6 text-sm text-slate-400">{emp.job_position}</td>
+                  <td className="py-4 px-6 text-sm text-slate-400 font-mono text-xs">{emp.email}</td>
+                  <td className="py-4 px-6">
+                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
+                      emp.status === 'Active' ? 'bg-emerald-900/30 text-emerald-400 border-emerald-500/30' :
+                      emp.status === 'On Leave' ? 'bg-amber-900/30 text-amber-400 border-amber-500/30' :
+                      'bg-slate-800/60 text-slate-500 border-slate-600/40'
+                    }`}>{emp.status}</span>
+                  </td>
+                  <td className="py-4 px-6 text-right">
+                    <Link
+                      href={`/employees/${emp.id}`}
+                      className="inline-flex px-3 py-1.5 rounded-lg border border-violet-500/30 bg-violet-600/10 text-xs font-semibold text-violet-300 hover:bg-violet-600/20 transition-colors"
+                    >
+                      View Profile
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
-  );
+  )
 }
