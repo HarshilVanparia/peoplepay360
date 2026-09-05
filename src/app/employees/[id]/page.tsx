@@ -1,57 +1,82 @@
 import { getEmployeeHubData } from '../../../../actions/employees';
-import { FileText, Clock, CalendarDays } from 'lucide-react';
+import { FileText, Clock, CalendarDays, Briefcase, Building, Mail, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 
 export default async function EmployeeHub({ params }: { params: { id: string } }) {
   const { employee, stats } = await getEmployeeHubData(params.id);
 
   return (
-    <div className="p-8 max-w-5xl mx-auto space-y-8">
-      {/* Identity Header */}
-      <div className="flex items-start justify-between border-b pb-6">
-        <div>
-          <h1 className="text-3xl font-bold">{employee.first_name} {employee.last_name}</h1>
-          <p className="text-gray-500 text-lg mt-1">{employee.job_position} • {employee.department}</p>
+    <div className="min-h-screen bg-gray-50 p-8">
+      <div className="max-w-6xl mx-auto space-y-6">
+        {/* Breadcrumb */}
+        <div className="flex items-center gap-2 text-sm text-gray-500">
+          <Link href="/employees" className="hover:text-blue-600">Employees</Link>
+          <ChevronRight size={14} />
+          <span className="text-gray-900 font-medium">{employee.first_name} {employee.last_name}</span>
         </div>
-        <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-semibold">
-          {employee.system_role}
-        </span>
-      </div>
 
-      {/* Smart Button Action Hub */}
-      <div className="grid grid-cols-3 gap-4">
-        <Link href={`/contracts?employee=${employee.id}`} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
-          <div className="flex items-center gap-3">
-            <FileText className="text-gray-400" />
-            <span className="font-medium">Contracts</span>
+        {/* Identity Header Card */}
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+          <div className="flex items-center gap-6">
+            <div className="h-24 w-24 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl flex items-center justify-center text-white text-3xl font-bold shadow-inner border-4 border-blue-50">
+              {employee.first_name[0]}{employee.last_name[0]}
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">{employee.first_name} {employee.last_name}</h1>
+              <div className="flex flex-wrap items-center gap-4 mt-3 text-sm text-gray-600">
+                <span className="flex items-center gap-1.5"><Briefcase size={16} className="text-gray-400" /> {employee.job_position}</span>
+                <span className="flex items-center gap-1.5"><Building size={16} className="text-gray-400" /> {employee.department}</span>
+                <span className="flex items-center gap-1.5"><Mail size={16} className="text-gray-400" /> {employee.email}</span>
+              </div>
+            </div>
           </div>
-          <span className="bg-gray-100 px-2 py-1 rounded text-sm">{stats.contractCount}</span>
-        </Link>
-        <Link href={`/attendance?employee=${employee.id}`} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
-          <div className="flex items-center gap-3">
-            <Clock className="text-gray-400" />
-            <span className="font-medium">Attendance</span>
+          <div className="flex flex-col items-end gap-3">
+            <span className={`inline-flex items-center px-4 py-1.5 rounded-full text-sm font-bold border ${
+              employee.status === 'Active' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-100 text-gray-700 border-gray-200'
+            }`}>
+              <div className={`w-2 h-2 rounded-full mr-2 ${employee.status === 'Active' ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+              {employee.status}
+            </span>
+            <span className="inline-flex items-center px-3 py-1 rounded-md text-xs font-semibold bg-gray-100 text-gray-600 uppercase tracking-wider">
+              System Role: {employee.system_role}
+            </span>
           </div>
-          <span className="bg-gray-100 px-2 py-1 rounded text-sm">{stats.attendanceCount}</span>
-        </Link>
-        <Link href={`/time-off?employee=${employee.id}`} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
-          <div className="flex items-center gap-3">
-            <CalendarDays className="text-gray-400" />
-            <span className="font-medium">Time Off</span>
-          </div>
-          <span className="bg-gray-100 px-2 py-1 rounded text-sm">{stats.leaveCount}</span>
-        </Link>
-      </div>
-
-      {/* Basic Form Display */}
-      <div className="bg-white border rounded-lg p-6 grid grid-cols-2 gap-6">
-        <div>
-          <label className="text-xs text-gray-500 uppercase">Email</label>
-          <p className="font-medium">{employee.email}</p>
         </div>
-        <div>
-          <label className="text-xs text-gray-500 uppercase">Employment Type</label>
-          <p className="font-medium">{employee.employment_type}</p>
+
+        {/* Smart Button Action Hub */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <Link href={`/contracts?employee=${employee.id}`} className="group bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:border-blue-400 hover:ring-1 hover:ring-blue-400 transition-all flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="p-3.5 bg-blue-50 text-blue-600 rounded-lg group-hover:bg-blue-600 group-hover:text-white transition-colors shadow-sm"><FileText size={22} /></div>
+              <div>
+                <p className="font-bold text-gray-900 text-lg">Contracts</p>
+                <p className="text-xs text-gray-500 font-medium mt-0.5">Historical & Active</p>
+              </div>
+            </div>
+            <span className="bg-gray-100 text-gray-800 font-bold px-3.5 py-1.5 rounded-lg text-sm group-hover:bg-blue-50 group-hover:text-blue-700">{stats.contractCount}</span>
+          </Link>
+          
+          <Link href={`/attendance?employee=${employee.id}`} className="group bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:border-indigo-400 hover:ring-1 hover:ring-indigo-400 transition-all flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="p-3.5 bg-indigo-50 text-indigo-600 rounded-lg group-hover:bg-indigo-600 group-hover:text-white transition-colors shadow-sm"><Clock size={22} /></div>
+              <div>
+                <p className="font-bold text-gray-900 text-lg">Attendance</p>
+                <p className="text-xs text-gray-500 font-medium mt-0.5">Daily Presence Logs</p>
+              </div>
+            </div>
+            <span className="bg-gray-100 text-gray-800 font-bold px-3.5 py-1.5 rounded-lg text-sm group-hover:bg-indigo-50 group-hover:text-indigo-700">{stats.attendanceCount}</span>
+          </Link>
+
+          <Link href={`/time-off/requests?employee=${employee.id}`} className="group bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:border-teal-400 hover:ring-1 hover:ring-teal-400 transition-all flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="p-3.5 bg-teal-50 text-teal-600 rounded-lg group-hover:bg-teal-600 group-hover:text-white transition-colors shadow-sm"><CalendarDays size={22} /></div>
+              <div>
+                <p className="font-bold text-gray-900 text-lg">Time Off</p>
+                <p className="text-xs text-gray-500 font-medium mt-0.5">Leaves & Requests</p>
+              </div>
+            </div>
+            <span className="bg-gray-100 text-gray-800 font-bold px-3.5 py-1.5 rounded-lg text-sm group-hover:bg-teal-50 group-hover:text-teal-700">{stats.leaveCount}</span>
+          </Link>
         </div>
       </div>
     </div>
