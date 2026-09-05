@@ -4,8 +4,8 @@ import { query, transaction } from '../lib/db';
 import { revalidatePath } from 'next/cache';
 import { v4 as uuidv4 } from 'uuid';
 
+// 1. Wizard Step 2: Filters eligible staff for explicit user selection[cite: 2].
 export async function getEligibleEmployees(periodStart: string, periodEnd: string, structureId: string) {
-  // Enforces period-based contract resolution: only fetches employees with an active contract during the selected dates.
   return await query(`
     SELECT e.id, e.first_name, e.last_name, c.id as contract_id, c.wage 
     FROM employees e
@@ -17,24 +17,22 @@ export async function getEligibleEmployees(periodStart: string, periodEnd: strin
   `, [structureId, periodEnd, periodStart]);
 }
 
+// 2. Wizard Final Step: Computes payslips for selected employees[cite: 2].
 export async function generatePayrun(data: any, selectedEmployeeIds: string[]) {
   return await transaction(async (conn) => {
     const payrunId = uuidv4();
     
-    // 1. Initialize the batch
     await conn.execute(
       `INSERT INTO payruns (id, name, salary_structure_id, period_start, period_end, status) 
        VALUES (?, ?, ?, ?, ?, 'Draft')`,
       [payrunId, data.name, data.structureId, data.periodStart, data.periodEnd]
     );
 
-    // 2. Fetch sequenced salary rules for the selected structure[cite: 2]
     const [rules] = await conn.execute(
       `SELECT * FROM salary_rules WHERE structure_id = ? ORDER BY sequence ASC`,
       [data.structureId]
     ) as any[];
 
-    // 3. Process each employee using their active contract wage
     for (const empId of selectedEmployeeIds) {
       const [contracts] = await conn.execute(
         `SELECT id, wage FROM contracts WHERE employee_id = ? AND status = 'Active' LIMIT 1`,
@@ -48,13 +46,11 @@ export async function generatePayrun(data: any, selectedEmployeeIds: string[]) {
       let gross = basic;
       let deductions = 0;
 
-      // Execute ordered salary rules[cite: 2]
       for (const rule of rules) {
         let amount = 0;
         if (rule.calculation_type === 'FIXED') {
           amount = Number(rule.amount_value);
         } else if (rule.calculation_type === 'PERCENTAGE') {
-          // Calculates percentage against the base wage[cite: 2]
           amount = basic * (Number(rule.amount_value) / 100);
         }
 
@@ -75,4 +71,39 @@ export async function generatePayrun(data: any, selectedEmployeeIds: string[]) {
     revalidatePath('/payroll/payruns');
     return payrunId;
   });
+}
+
+// 3. Batches View: Lists all payroll batches[cite: 2].
+export async function getPayruns() {
+  return await query(`
+    SELECT p.*, s.name as structure_name, 
+    (SELECT COUNT(*) FROM payslips WHERE payrun_id = p.id) as payslip_count
+    FROM payruns p
+    JOIN salary_structures s ON p.salary_structure_id = s.id
+    ORDER BY p.created_at DESC
+  `);
+}
+
+// 4. Batch Detail View: Fetches payrun context and individual payslips[cite: 2].
+export async function getPayrunDetails(payrunId: string) {
+  const [payrun] = await query(`
+    SELECT p.*, s.name as structure_name 
+    FROM payruns p JOIN salary_structures s ON p.salary_structure_id = s.id 
+    WHERE p.id = ?`, [payrunId]);
+
+  const payslips = await query(`
+    SELECT ps.*, e.first_name, e.last_name, e.bank_account_no
+    FROM payslips ps
+    JOIN employees e ON ps.employee_id = e.id
+    WHERE ps.payrun_id = ?
+  `, [payrunId]);
+
+  return { payrun, payslips };
+}
+
+// 5. Processing Actions: Validate and Mark Paid[cite: 2].
+export async function updatePayrunStatus(payrunId: string, status: 'Validated' | 'Paid') {
+  await query(`UPDATE payruns SET status = ? WHERE id = ?`, [status, payrunId]);
+  await query(`UPDATE payslips SET status = ? WHERE payrun_id = ?`, [status, payrunId]);
+  revalidatePath(`/payroll/payruns/${payrunId}`);
 }

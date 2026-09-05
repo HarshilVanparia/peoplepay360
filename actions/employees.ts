@@ -3,6 +3,23 @@
 import { query } from '../lib/db';
 import { revalidatePath } from 'next/cache';
 
+import { v4 as uuidv4 } from 'uuid';
+
+export async function createEmployee(data: any) {
+  const id = uuidv4();
+  await query(
+    `INSERT INTO employees (id, first_name, last_name, email, system_role, department, job_position, employment_type, status, schedule_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      id, data.first_name, data.last_name, data.email, data.system_role, 
+      data.department, data.job_position, data.employment_type, data.status, 
+      data.schedule_id || null
+    ]
+  );
+  revalidatePath('/employees');
+  return id;
+}
+
 export interface Employee {
   id: string;
   first_name: string;
