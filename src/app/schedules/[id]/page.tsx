@@ -1,21 +1,21 @@
-import { getScheduleWithDays } from '../../../actions/schedules';
-import { upsertScheduleDay } from '../../../actions/schedules';
-import Link from 'next/link';
-import { ArrowLeft, Clock, ChevronRight } from 'lucide-react';
+import { getScheduleWithDays, upsertScheduleDay } from '../../../../actions/schedules'
+import Link from 'next/link'
+import { ArrowLeft, Clock, ChevronRight } from 'lucide-react'
 
 const WEEKDAYS = [
   { n: 1, label: 'Monday' }, { n: 2, label: 'Tuesday' }, { n: 3, label: 'Wednesday' },
   { n: 4, label: 'Thursday' }, { n: 5, label: 'Friday' }, { n: 6, label: 'Saturday' }, { n: 7, label: 'Sunday' },
-];
+]
 
 export default async function ScheduleDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const { schedule, days } = await getScheduleWithDays(id);
+  const { id } = await params
+  const { schedule, days } = await getScheduleWithDays(id)
 
-  if (!schedule) return <div className="p-8 text-slate-400">Schedule not found.</div>;
+  if (!schedule) return <div className="p-8 text-slate-400">Schedule not found.</div>
 
-  const dayMap: Record<number, any> = {};
-  (days as any[]).forEach(d => { dayMap[d.weekday] = d; });
+  const dayMap: Record<number, any> = {}
+  const dayList = days as any[]
+  dayList.forEach(d => { dayMap[d.weekday] = d })
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -48,26 +48,26 @@ export default async function ScheduleDetailPage({ params }: { params: Promise<{
         <div className="border-b border-slate-700/60 px-6 py-4 flex items-center gap-3">
           <Clock size={17} className="text-violet-400" />
           <h2 className="font-semibold text-white">Weekly Pattern</h2>
-          <span className="text-xs text-slate-500 ml-auto">Edit each day's hours. Weekly total recalculates automatically.</span>
+          <span className="text-xs text-slate-500 ml-auto">Edit each day hours. Weekly total recalculates automatically.</span>
         </div>
 
         <div className="divide-y divide-slate-700/40">
           {WEEKDAYS.map(({ n, label }) => {
-            const day = dayMap[n];
-            const isWorking = !!day?.start_time;
+            const day = dayMap[n]
+            const isWorking = Boolean(day?.start_time)
             return (
               <form
                 key={n}
                 action={async (fd: FormData) => {
-                  'use server';
-                  const enabled = fd.get('enabled') === 'on';
+                  'use server'
+                  const enabled = fd.get('enabled') === 'on'
                   await upsertScheduleDay({
                     schedule_id: id,
                     weekday: n,
                     start_time: enabled ? String(fd.get('start_time') || '09:00') : null,
                     end_time: enabled ? String(fd.get('end_time') || '17:00') : null,
                     break_minutes: enabled ? Number(fd.get('break_minutes') || 0) : 0,
-                  });
+                  })
                 }}
                 className="flex flex-wrap items-center gap-4 px-6 py-4 hover:bg-violet-900/5 transition-colors"
               >
@@ -119,22 +119,22 @@ export default async function ScheduleDetailPage({ params }: { params: Promise<{
                 {day?.start_time && day?.end_time && (
                   <span className="text-xs text-slate-500 font-mono">
                     {(() => {
-                      const [sh, sm] = String(day.start_time).split(':').map(Number);
-                      const [eh, em] = String(day.end_time).split(':').map(Number);
-                      const net = (eh * 60 + em) - (sh * 60 + sm) - Number(day.break_minutes || 0);
-                      return `${(net / 60).toFixed(1)}h net`;
+                      const [sh, sm] = String(day.start_time).split(':').map(Number)
+                      const [eh, em] = String(day.end_time).split(':').map(Number)
+                      const net = (eh * 60 + em) - (sh * 60 + sm) - Number(day.break_minutes || 0)
+                      return `${(net / 60).toFixed(1)}h net`
                     })()}
                   </span>
                 )}
 
                 <button
                   type="submit"
-                  className="ml-auto rounded-lg border border-violet-500/40 bg-violet-900/10 px-3 py-1.5 text-xs font-semibold text-violet-300 hover:bg-violet-900/30 transition-all"
+                  className="ml-auto rounded-lg border border-violet-500/40 bg-violet-900/10 px-3 py-1.5 text-xs font-semibold text-violet-300 hover:bg-violet-900/30 transition-all cursor-pointer"
                 >
                   Save
                 </button>
               </form>
-            );
+            )
           })}
         </div>
       </div>
@@ -143,5 +143,5 @@ export default async function ScheduleDetailPage({ params }: { params: Promise<{
         Check the checkbox to mark a day as working. Uncheck to set it as a day off. Weekly hours recalculate on each save.
       </p>
     </div>
-  );
+  )
 }

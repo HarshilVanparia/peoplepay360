@@ -90,13 +90,20 @@ export default async function EmployeeHub({ params }: { params: Promise<{ id: st
         <div className="rounded-xl border border-slate-700/60 bg-slate-900/40 p-5">
           <p className="text-[10px] uppercase tracking-widest text-slate-500 mb-3">Leave Balances</p>
           <div className="grid md:grid-cols-4 gap-3">
-            {(balances as any[]).map((b) => (
-              <div key={b.name} className="rounded-xl border border-slate-700/40 bg-slate-800/40 p-3 text-center">
-                <p className="text-xs text-slate-500">{b.name}</p>
-                <p className="mt-1 text-xl font-bold text-white font-mono">{Number(b.remaining).toFixed(1)}</p>
-                <p className="text-[10px] text-slate-600">days remaining</p>
-              </div>
-            ))}
+            {(balances as any[]).map((b) => {
+              const isUnpaid = b.payroll_treatment === 'Unpaid' || b.code === 'UNPAID'
+              return (
+                <div key={b.name} className="rounded-xl border border-slate-700/40 bg-slate-800/40 p-3 text-center">
+                  <p className="text-xs text-slate-400">{b.name}</p>
+                  <p className="mt-1 text-xl font-bold font-mono text-white">
+                    {isUnpaid ? 'Uncapped' : Number(b.remaining).toFixed(1)}
+                  </p>
+                  <p className="text-[10px] text-slate-500">
+                    {isUnpaid ? 'On demand' : 'days remaining'}
+                  </p>
+                </div>
+              )
+            })}
           </div>
         </div>
       )}
