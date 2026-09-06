@@ -1,26 +1,26 @@
-'use client';
+'use client'
 
-import { useState, useTransition } from 'react';
-import { Clock, LogIn, LogOut, Calendar, AlertTriangle, CheckCircle2, Timer } from 'lucide-react';
-import { clockMyAttendance } from '../../../actions/attendance';
-import { generateAttendancePDF } from '../../../lib/pdf';
+import { useState, useTransition, useEffect } from 'react'
+import { Clock, LogIn, LogOut, Calendar, AlertTriangle, CheckCircle2, Timer } from 'lucide-react'
+import { clockMyAttendance } from '../../../actions/attendance'
+import { generateAttendancePDF } from '../../../lib/pdf'
 
 interface AttendanceRecord {
-  id: number;
-  check_in: string;
-  check_out: string | null;
-  worked_hours: number;
-  status: string;
-  schedule_name?: string;
-  scheduled_start?: string;
-  scheduled_end?: string;
+  id: number
+  check_in: string
+  check_out: string | null
+  worked_hours: number
+  status: string
+  schedule_name?: string
+  scheduled_start?: string
+  scheduled_end?: string
 }
 
 interface Props {
-  isClockedIn: boolean;
-  lastRecord: AttendanceRecord | null;
-  history: AttendanceRecord[];
-  firstName: string;
+  isClockedIn: boolean
+  lastRecord: AttendanceRecord | null
+  history: AttendanceRecord[]
+  firstName: string
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -29,55 +29,68 @@ const STATUS_COLORS: Record<string, string> = {
   Absent: 'bg-red-900/30 text-red-400 border-red-500/30',
   Overtime: 'bg-blue-900/30 text-blue-400 border-blue-500/30',
   'Manual Correction': 'bg-purple-900/30 text-purple-400 border-purple-500/30',
-};
+}
 
 function formatDT(dt: string | null | undefined) {
-  if (!dt) return null;
-  return new Date(dt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+  if (!dt) return null
+  const s = String(dt).replace('T', ' ')
+  return s.slice(0, 16)
 }
 
 function formatTime(t: string | null | undefined) {
-  if (!t) return null;
-  return new Date(t).toLocaleTimeString([], { timeStyle: 'short' });
+  if (!t) return null
+  const s = String(t).replace('T', ' ')
+  return s.slice(11, 16)
 }
 
 function formatScheduleTime(t: string | null | undefined) {
-  if (!t) return null;
-  return String(t).slice(0, 5);
+  if (!t) return null
+  return String(t).slice(0, 5)
 }
 
 export default function EmployeeClockWidget({ isClockedIn: initialClockedIn, lastRecord: initialLast, history, firstName }: Props) {
-  const [isClockedIn, setIsClockedIn] = useState(initialClockedIn);
-  const [lastRecord] = useState(initialLast);
-  const [tab, setTab] = useState<'clock' | 'history'>('clock');
-  const [message, setMessage] = useState('');
-  const [messageType, setMessageType] = useState<'success' | 'error'>('success');
-  const [isPending, startTransition] = useTransition();
-  const [searchDate, setSearchDate] = useState('');
+  const [isClockedIn, setIsClockedIn] = useState(initialClockedIn)
+  const [lastRecord] = useState(initialLast)
+  const [tab, setTab] = useState<'clock' | 'history'>('clock')
+  const [message, setMessage] = useState('')
+  const [messageType, setMessageType] = useState<'success' | 'error'>('success')
+  const [isPending, startTransition] = useTransition()
+  const [searchDate, setSearchDate] = useState('')
+  const [mounted, setMounted] = useState(false)
+  const [timeStr, setTimeStr] = useState('')
+  const [dateStr, setDateStr] = useState('')
+
+  useEffect(() => {
+    setMounted(true)
+    const updateTime = () => {
+      const d = new Date()
+      setTimeStr(d.toLocaleTimeString([], { timeStyle: 'medium' }))
+      setDateStr(d.toLocaleDateString([], { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }))
+    }
+    updateTime()
+    const timer = setInterval(updateTime, 1000)
+    return () => clearInterval(timer)
+  }, [])
 
   const handleClock = (action: 'in' | 'out') => {
-    setMessage('');
+    setMessage('')
     startTransition(async () => {
       try {
-        await clockMyAttendance(action);
-        setIsClockedIn(action === 'in');
-        setMessageType('success');
-        setMessage(action === 'in' ? 'Checked in successfully.' : 'Checked out successfully. Have a great day!');
+        await clockMyAttendance(action)
+        setIsClockedIn(action === 'in')
+        setMessageType('success')
+        setMessage(action === 'in' ? 'Checked in successfully.' : 'Checked out successfully. Have a great day!')
       } catch (err: any) {
-        setMessageType('error');
-        setMessage(err.message || 'Something went wrong.');
+        setMessageType('error')
+        setMessage(err.message || 'Something went wrong.')
       }
-    });
-  };
-
-  const now = new Date();
-  const timeStr = now.toLocaleTimeString([], { timeStyle: 'medium' });
-  const dateStr = now.toLocaleDateString([], { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    })
+  }
 
   const filteredHistory = history.filter(r => {
-    if (!searchDate) return true;
-    return r.check_in.startsWith(searchDate);
-  });
+    if (!searchDate) return true
+    return r.check_in.startsWith(searchDate)
+  })
 
   return (
     <div className="space-y-6">
@@ -85,13 +98,13 @@ export default function EmployeeClockWidget({ isClockedIn: initialClockedIn, las
       <div className="flex gap-1 rounded-xl border border-slate-700/60 bg-slate-900/40 p-1 w-fit">
         <button
           onClick={() => setTab('clock')}
-          className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all ${tab === 'clock' ? 'bg-violet-600 text-white shadow-lg shadow-violet-900/30' : 'text-slate-400 hover:text-white'}`}
+          className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all cursor-pointer ${tab === 'clock' ? 'bg-violet-600 text-white shadow-lg shadow-violet-900/30' : 'text-slate-400 hover:text-white'}`}
         >
           Clock
         </button>
         <button
           onClick={() => setTab('history')}
-          className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all ${tab === 'history' ? 'bg-violet-600 text-white shadow-lg shadow-violet-900/30' : 'text-slate-400 hover:text-white'}`}
+          className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all cursor-pointer ${tab === 'history' ? 'bg-violet-600 text-white shadow-lg shadow-violet-900/30' : 'text-slate-400 hover:text-white'}`}
         >
           My History
         </button>
@@ -102,8 +115,12 @@ export default function EmployeeClockWidget({ isClockedIn: initialClockedIn, las
           {/* Clock card */}
           <div className="rounded-2xl border border-slate-700/60 bg-slate-900/40 p-8 text-center space-y-2 backdrop-blur-sm">
             <p className="text-xs text-slate-500 uppercase tracking-widest">Current Time</p>
-            <p className="text-5xl font-bold font-mono text-white tracking-tight">{timeStr}</p>
-            <p className="text-sm text-slate-400">{dateStr}</p>
+            <p className="text-5xl font-bold font-mono text-white tracking-tight" suppressHydrationWarning>
+              {mounted ? timeStr : '--:--:--'}
+            </p>
+            <p className="text-sm text-slate-400" suppressHydrationWarning>
+              {mounted ? dateStr : 'Loading clock...'}
+            </p>
             <div className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-semibold">
               <span className={`w-2 h-2 rounded-full ${isClockedIn ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`} />
               <span className={isClockedIn ? 'text-emerald-400' : 'text-slate-400'}>{isClockedIn ? 'Clocked In' : 'Not Clocked In'}</span>
@@ -125,11 +142,11 @@ export default function EmployeeClockWidget({ isClockedIn: initialClockedIn, las
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-[10px] text-slate-500 uppercase tracking-wider">Check In</p>
-                  <p className="font-semibold text-sm text-white mt-1">{formatDT(lastRecord.check_in)}</p>
+                  <p className="font-semibold text-sm text-white mt-1" suppressHydrationWarning>{formatDT(lastRecord.check_in)}</p>
                 </div>
                 <div>
                   <p className="text-[10px] text-slate-500 uppercase tracking-wider">Check Out</p>
-                  <p className={`font-semibold text-sm mt-1 ${lastRecord.check_out ? 'text-white' : 'text-amber-400 italic'}`}>
+                  <p className={`font-semibold text-sm mt-1 ${lastRecord.check_out ? 'text-white' : 'text-amber-400 italic'}`} suppressHydrationWarning>
                     {lastRecord.check_out ? formatDT(lastRecord.check_out) : 'Still active'}
                   </p>
                 </div>
@@ -162,7 +179,7 @@ export default function EmployeeClockWidget({ isClockedIn: initialClockedIn, las
             <button
               onClick={() => handleClock('in')}
               disabled={isPending || isClockedIn}
-              className="flex flex-col items-center gap-2 rounded-2xl border border-emerald-500/40 bg-emerald-900/20 py-6 px-4 font-bold text-emerald-300 hover:bg-emerald-900/40 hover:border-emerald-400/60 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              className="flex flex-col items-center gap-2 rounded-2xl border border-emerald-500/40 bg-emerald-900/20 py-6 px-4 font-bold text-emerald-300 hover:bg-emerald-900/40 hover:border-emerald-400/60 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
             >
               <LogIn size={28} />
               <span>Check In</span>
@@ -171,7 +188,7 @@ export default function EmployeeClockWidget({ isClockedIn: initialClockedIn, las
             <button
               onClick={() => handleClock('out')}
               disabled={isPending || !isClockedIn}
-              className="flex flex-col items-center gap-2 rounded-2xl border border-violet-500/40 bg-violet-900/20 py-6 px-4 font-bold text-violet-300 hover:bg-violet-900/40 hover:border-violet-400/60 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              className="flex flex-col items-center gap-2 rounded-2xl border border-violet-500/40 bg-violet-900/20 py-6 px-4 font-bold text-violet-300 hover:bg-violet-900/40 hover:border-violet-400/60 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
             >
               <LogOut size={28} />
               <span>Check Out</span>
@@ -195,13 +212,13 @@ export default function EmployeeClockWidget({ isClockedIn: initialClockedIn, las
               />
             </div>
             {searchDate && (
-              <button onClick={() => setSearchDate('')} className="text-xs text-slate-400 hover:text-white transition-colors">
+              <button onClick={() => setSearchDate('')} className="text-xs text-slate-400 hover:text-white transition-colors cursor-pointer">
                 Clear date
               </button>
             )}
             <button
               onClick={() => generateAttendancePDF(filteredHistory, `${firstName} Attendance`)}
-              className="ml-auto inline-flex items-center gap-2 rounded-xl border border-violet-500/40 px-4 py-2 text-sm font-semibold text-violet-300 hover:bg-violet-900/20 hover:border-violet-400/60 transition-all"
+              className="ml-auto inline-flex items-center gap-2 rounded-xl border border-violet-500/40 px-4 py-2 text-sm font-semibold text-violet-300 hover:bg-violet-900/20 hover:border-violet-400/60 transition-all cursor-pointer"
             >
               <Clock size={14} /> Export PDF
             </button>
@@ -229,23 +246,23 @@ export default function EmployeeClockWidget({ isClockedIn: initialClockedIn, las
                 <tbody className="divide-y divide-slate-700/40">
                   {filteredHistory.map(r => (
                     <tr key={r.id} className="hover:bg-violet-900/10 transition-colors">
-                      <td className="py-3.5 px-5 text-sm font-semibold text-slate-300">
-                        {new Date(r.check_in).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}
+                      <td className="py-3.5 px-5 text-sm font-semibold text-slate-300 font-mono" suppressHydrationWarning>
+                        {r.check_in ? String(r.check_in).slice(0, 10) : '-'}
                       </td>
-                      <td className="py-3.5 px-5 text-sm font-mono text-white">
+                      <td className="py-3.5 px-5 text-sm font-mono text-white" suppressHydrationWarning>
                         {formatTime(r.check_in)}
                         {r.scheduled_start && (
-                          <span className="ml-2 text-[10px] text-slate-500">
+                          <span className="ml-2 text-[10px] text-slate-500 font-mono">
                             (sch. {formatScheduleTime(r.scheduled_start)})
                           </span>
                         )}
                       </td>
-                      <td className="py-3.5 px-5 text-sm font-mono">
+                      <td className="py-3.5 px-5 text-sm font-mono" suppressHydrationWarning>
                         {r.check_out ? (
                           <span className="text-white">
                             {formatTime(r.check_out)}
                             {r.scheduled_end && (
-                              <span className="ml-2 text-[10px] text-slate-500">
+                              <span className="ml-2 text-[10px] text-slate-500 font-mono">
                                 (sch. {formatScheduleTime(r.scheduled_end)})
                               </span>
                             )}
@@ -273,5 +290,5 @@ export default function EmployeeClockWidget({ isClockedIn: initialClockedIn, las
         </div>
       )}
     </div>
-  );
+  )
 }

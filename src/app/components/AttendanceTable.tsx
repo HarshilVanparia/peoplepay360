@@ -1,9 +1,9 @@
-'use client';
+'use client'
 
-import { useState } from 'react';
-import { Search, Clock, Download, Filter, Calendar, X } from 'lucide-react';
-import Link from 'next/link';
-import { generateAttendancePDF } from '../../../lib/pdf';
+import { useState } from 'react'
+import { Search, Clock, Download, Calendar, X } from 'lucide-react'
+import Link from 'next/link'
+import { generateAttendancePDF } from '../../../lib/pdf'
 
 const STATUS_COLORS: Record<string, string> = {
   Normal: 'bg-emerald-900/30 text-emerald-400 border-emerald-500/30',
@@ -11,31 +11,31 @@ const STATUS_COLORS: Record<string, string> = {
   Absent: 'bg-red-900/30 text-red-400 border-red-500/30',
   Overtime: 'bg-blue-900/30 text-blue-400 border-blue-500/30',
   'Manual Correction': 'bg-purple-900/30 text-purple-400 border-purple-500/30',
-};
+}
 
-const STATUSES = ['All Statuses', 'Normal', 'Late', 'Absent', 'Overtime', 'Manual Correction'];
+const STATUSES = ['All Statuses', 'Normal', 'Late', 'Absent', 'Overtime', 'Manual Correction']
 
 interface Props {
-  records: any[];
+  records: any[]
 }
 
 export default function AttendanceTable({ records }: Props) {
-  const [term, setTerm] = useState('');
-  const [status, setStatus] = useState('All Statuses');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
+  const [term, setTerm] = useState('')
+  const [status, setStatus] = useState('All Statuses')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
 
   const filtered = records.filter(r => {
-    const name = `${r.first_name} ${r.last_name}`.toLowerCase();
-    const matchTerm = !term || name.includes(term.toLowerCase());
-    const matchStatus = status === 'All Statuses' || r.status === status;
-    const checkInDate = r.check_in ? r.check_in.slice(0, 10) : '';
-    const matchFrom = !dateFrom || checkInDate >= dateFrom;
-    const matchTo = !dateTo || checkInDate <= dateTo;
-    return matchTerm && matchStatus && matchFrom && matchTo;
-  });
+    const name = `${r.first_name} ${r.last_name}`.toLowerCase()
+    const matchTerm = !term || name.includes(term.toLowerCase())
+    const matchStatus = status === 'All Statuses' || r.status === status
+    const checkInDate = r.check_in ? String(r.check_in).slice(0, 10) : ''
+    const matchFrom = !dateFrom || checkInDate >= dateFrom
+    const matchTo = !dateTo || checkInDate <= dateTo
+    return matchTerm && matchStatus && matchFrom && matchTo
+  })
 
-  const hasFilters = term || status !== 'All Statuses' || dateFrom || dateTo;
+  const hasFilters = term || status !== 'All Statuses' || dateFrom || dateTo
 
   return (
     <div className="space-y-4">
@@ -82,8 +82,8 @@ export default function AttendanceTable({ records }: Props) {
 
         {hasFilters && (
           <button
-            onClick={() => { setTerm(''); setStatus('All Statuses'); setDateFrom(''); setDateTo(''); }}
-            className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-slate-600 text-xs font-semibold text-slate-400 hover:text-white hover:border-slate-400 transition-all"
+            onClick={() => { setTerm(''); setStatus('All Statuses'); setDateFrom(''); setDateTo('') }}
+            className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-slate-600 text-xs font-semibold text-slate-400 hover:text-white hover:border-slate-400 transition-all cursor-pointer"
           >
             <X size={12} /> Clear
           </button>
@@ -91,7 +91,7 @@ export default function AttendanceTable({ records }: Props) {
 
         <button
           onClick={() => generateAttendancePDF(filtered, 'Attendance Report')}
-          className="ml-auto inline-flex items-center gap-2 rounded-xl border border-violet-500/40 bg-violet-900/10 px-4 py-2.5 text-sm font-semibold text-violet-300 hover:bg-violet-900/30 hover:border-violet-400/60 transition-all shadow-sm"
+          className="ml-auto inline-flex items-center gap-2 rounded-xl border border-violet-500/40 bg-violet-900/10 px-4 py-2.5 text-sm font-semibold text-violet-300 hover:bg-violet-900/30 hover:border-violet-400/60 transition-all shadow-sm cursor-pointer"
         >
           <Download size={14} /> Export PDF
         </button>
@@ -127,22 +127,26 @@ export default function AttendanceTable({ records }: Props) {
                   <td className="py-3.5 px-5 text-sm text-slate-300">
                     <div className="flex items-center gap-2">
                       <Clock size={12} className="text-slate-500 shrink-0" />
-                      <span className="font-mono">{new Date(r.check_in).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}</span>
+                      <span className="font-mono" suppressHydrationWarning>
+                        {r.check_in ? String(r.check_in).replace('T', ' ').slice(0, 16) : '-'}
+                      </span>
                     </div>
                     {r.scheduled_start && (
-                      <p className="text-[10px] text-slate-600 mt-0.5 ml-5">
+                      <p className="text-[10px] text-slate-600 mt-0.5 ml-5 font-mono">
                         Sch. {String(r.scheduled_start).slice(0, 5)} - {String(r.scheduled_end || '').slice(0, 5)}
                       </p>
                     )}
                   </td>
-                  <td className="py-3.5 px-5 text-sm font-mono">
+                  <td className="py-3.5 px-5 text-sm font-mono" suppressHydrationWarning>
                     {r.check_out ? (
-                      <span className="text-slate-300">{new Date(r.check_out).toLocaleTimeString([], { timeStyle: 'short' })}</span>
+                      <span className="text-slate-300">
+                        {String(r.check_out).replace('T', ' ').slice(11, 16)}
+                      </span>
                     ) : (
                       <span className="text-amber-400 italic text-xs">Missing</span>
                     )}
                   </td>
-                  <td className="py-3.5 px-5 text-xs text-slate-500">{r.schedule_name || '-'}</td>
+                  <td className="py-3.5 px-5 text-xs text-slate-400">{(r as any).schedule_name || '-'}</td>
                   <td className="py-3.5 px-5 font-mono font-bold text-sm text-white">
                     {Number(r.worked_hours).toFixed(2)}h
                   </td>
@@ -159,5 +163,5 @@ export default function AttendanceTable({ records }: Props) {
       </div>
       <p className="text-xs text-slate-600 text-right">{filtered.length} of {records.length} records</p>
     </div>
-  );
+  )
 }

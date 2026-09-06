@@ -17,8 +17,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const hasPayrollAccess = ['HR Payroll User', 'HR Payroll Manager', 'Admin'].includes(role)
 
   return (
-    <html lang="en">
-      <body>
+    <html lang="en" suppressHydrationWarning>
+      <body suppressHydrationWarning>
         {session && (
           <div className="app-shell">
             <aside className="app-sidebar">
