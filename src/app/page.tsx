@@ -1,4 +1,5 @@
 import { query } from '../../lib/db'
+import { syncEmployeeLeaveStatuses } from '../../actions/employees'
 import {
   Users,
   Banknote,
@@ -27,6 +28,7 @@ interface Props {
 }
 
 export default async function PayrollDashboard({ searchParams }: Props) {
+  await syncEmployeeLeaveStatuses()
   const params = await searchParams
   const session = await getServerSession(authOptions)
   const role = (session?.user as any)?.role
@@ -400,7 +402,9 @@ export default async function PayrollDashboard({ searchParams }: Props) {
                       className="flex items-center justify-between text-xs text-slate-300 hover:text-white transition-colors"
                     >
                       <span>{r.first_name} ({r.type_name})</span>
-                      <span className="text-[10px] text-violet-300 font-semibold">{r.duration_days}d</span>
+                      <span className="text-[10px] text-violet-300 font-semibold">
+                        {Number(r.duration_days) % 1 === 0 ? String(Math.round(Number(r.duration_days))) : Number(r.duration_days).toFixed(1)}d
+                      </span>
                     </Link>
                   ))}
                 </div>

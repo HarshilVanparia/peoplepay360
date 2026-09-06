@@ -3,13 +3,44 @@
 import { query, transaction } from '../lib/db'
 import { revalidatePath } from 'next/cache'
 
+export async function syncEmployeeLeaveStatuses() {
+  // Set Active employees to On Leave if they have an active approved leave request today
+  await query(`
+    UPDATE employees e
+    SET status = 'On Leave'
+    WHERE status = 'Active'
+      AND EXISTS (
+        SELECT 1 FROM leave_requests r
+        WHERE r.employee_id = e.id
+          AND r.status = 'Approved'
+          AND CURDATE() BETWEEN r.start_date AND r.end_date
+      )
+  `)
+
+  // Return employees to Active if their approved leave has ended
+  await query(`
+    UPDATE employees e
+    SET status = 'Active'
+    WHERE status = 'On Leave'
+      AND NOT EXISTS (
+        SELECT 1 FROM leave_requests r
+        WHERE r.employee_id = e.id
+          AND r.status = 'Approved'
+          AND CURDATE() BETWEEN r.start_date AND r.end_date
+      )
+  `)
+}
+
 export async function getEmployees() {
+  await syncEmployeeLeaveStatuses()
   return await query(`SELECT * FROM employees ORDER BY created_at DESC`)
 }
 
 export async function getEmployeeHubData(id: string | number) {
+  await syncEmployeeLeaveStatuses()
+
   const [employee] = await query(
-    `SELECT e.*, ws.name AS schedule_name, CONCAT(m.first_name, ' ', m.last_name) AS manager_name
+    `SELECT e.*, ws.name AS schedule_name, ws.weekly_hours, CONCAT(m.first_name, ' ', m.last_name) AS manager_name
      FROM employees e
      LEFT JOIN working_schedules ws ON ws.id=e.schedule_id
      LEFT JOIN employees m ON m.id=e.manager_id
@@ -57,7 +88,47 @@ export async function getEmployeeHubData(id: string | number) {
     [id]
   )
 
-  return { employee, stats, pay, balances }
+  // Fetch all user-specific data for this particular employee
+  const contracts = await query(
+    `SELECT c.*, s.name as structure_name
+     FROM contracts c
+     LEFT JOIN salary_structures s ON s.id = c.salary_structure_id
+     WHERE c.employee_id = ?
+     ORDER BY c.status = 'Active' DESC, c.start_date DESC`,
+    [id]
+  ) as any[]
+
+  const attendance = await query(
+    `SELECT a.*, ws.name as schedule_name
+     FROM attendance a
+     LEFT JOIN employees e ON e.id = a.employee_id
+     LEFT JOIN working_schedules ws ON ws.id = e.schedule_id
+     WHERE a.employee_id = ?
+     ORDER BY a.check_in DESC
+     LIMIT 15`,
+    [id]
+  ) as any[]
+
+  const leaveRequests = await query(
+    `SELECT r.*, t.name as type_name
+     FROM leave_requests r
+     JOIN leave_types t ON t.id = r.leave_type_id
+     WHERE r.employee_id = ?
+     ORDER BY r.start_date DESC
+     LIMIT 15`,
+    [id]
+  ) as any[]
+
+  const allocations = await query(
+    `SELECT a.*, t.name as type_name
+     FROM leave_allocations a
+     JOIN leave_types t ON t.id = a.leave_type_id
+     WHERE a.employee_id = ?
+     ORDER BY a.valid_from DESC`,
+    [id]
+  ) as any[]
+
+  return { employee, stats, pay, balances, contracts, attendance, leaveRequests, allocations }
 }
 
 export async function createEmployee(data: any) {

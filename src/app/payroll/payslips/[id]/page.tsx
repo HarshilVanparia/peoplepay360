@@ -1,8 +1,9 @@
-import { getPayslipDetail } from '../../../../../actions/salary-structures';
-import { updatePayrunStatus } from '../../../../../actions/payroll';
-import DownloadPayslipButton from '../../../components/DownloadPayslipButton';
-import Link from 'next/link';
-import { ChevronRight, Banknote, AlertTriangle, CheckCircle2, FileText } from 'lucide-react';
+import { getPayslipDetail } from '../../../../../actions/salary-structures'
+import { updatePayrunStatus } from '../../../../../actions/payroll'
+import DownloadPayslipButton from '../../../components/DownloadPayslipButton'
+import PrintPayslipButton from '../../../components/PrintPayslipButton'
+import Link from 'next/link'
+import { ChevronRight, Banknote, AlertTriangle, CheckCircle2, FileText } from 'lucide-react'
 
 const CATEGORY_COLORS: Record<string, string> = {
   BASIC: 'bg-blue-900/30 text-blue-400 border-blue-500/30',
@@ -10,24 +11,23 @@ const CATEGORY_COLORS: Record<string, string> = {
   GROSS: 'bg-violet-900/30 text-violet-400 border-violet-500/30',
   DEDUCTION: 'bg-red-900/30 text-red-400 border-red-500/30',
   NET: 'bg-amber-900/30 text-amber-400 border-amber-500/30',
-};
+}
 
 const STATUS_COLORS: Record<string, string> = {
   Paid: 'bg-emerald-900/30 text-emerald-400 border-emerald-500/30',
   Validated: 'bg-blue-900/30 text-blue-400 border-blue-500/30',
   Computed: 'bg-violet-900/30 text-violet-400 border-violet-500/30',
   Draft: 'bg-slate-800/60 text-slate-400 border-slate-600/40',
-};
+}
 
 export default async function PayslipDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const { payslip, lines } = await getPayslipDetail(id);
+  const { id } = await params
+  const { payslip, lines } = await getPayslipDetail(id)
 
-  if (!payslip) return <div className="p-8 text-slate-400">Payslip not found.</div>;
+  if (!payslip) return <div className="p-8 text-slate-400">Payslip not found.</div>
 
-  const earnings = (lines as any[]).filter(l => ['BASIC', 'ALLOWANCE', 'GROSS'].includes(l.category));
-  const deductions = (lines as any[]).filter(l => l.category === 'DEDUCTION');
-  const net = (lines as any[]).filter(l => l.category === 'NET');
+  const earnings = (lines as any[]).filter(l => ['BASIC', 'ALLOWANCE', 'GROSS'].includes(l.category))
+  const deductions = (lines as any[]).filter(l => l.category === 'DEDUCTION')
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -44,12 +44,13 @@ export default async function PayslipDetailPage({ params }: { params: Promise<{ 
           <div>
             <p className="text-xs tracking-[.2em] text-violet-300 mb-1">PAYSLIP</p>
             <h1 className="text-2xl font-bold text-white">{payslip.first_name} {payslip.last_name}</h1>
-            <p className="text-sm text-slate-400 mt-1">{payslip.department} - {payslip.job_position}</p>
+            <p className="text-sm text-slate-400 mt-1">{payslip.department} | {payslip.job_position}</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider border ${STATUS_COLORS[payslip.status] || STATUS_COLORS.Draft}`}>
               {payslip.status}
             </span>
+            <PrintPayslipButton payslip={payslip} />
             <DownloadPayslipButton payslip={payslip} />
           </div>
         </div>
@@ -98,38 +99,47 @@ export default async function PayslipDetailPage({ params }: { params: Promise<{ 
             <p className="text-sm">No computation lines recorded. Payslip may have been created manually.</p>
           </div>
         ) : (
-          <table className="w-full text-left">
-            <thead className="border-b border-slate-700/60">
-              <tr>
-                <th className="py-3 px-6 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Seq</th>
-                <th className="py-3 px-6 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Rule</th>
-                <th className="py-3 px-6 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Code</th>
-                <th className="py-3 px-6 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Category</th>
-                <th className="py-3 px-6 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-right">Amount</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-700/40">
-              {(lines as any[]).map(line => (
-                <tr key={line.id} className="hover:bg-violet-900/5 transition-colors">
-                  <td className="py-3 px-6 font-mono text-xs text-slate-600">{line.sequence}</td>
-                  <td className="py-3 px-6 text-sm font-medium text-white">{line.rule_name}</td>
-                  <td className="py-3 px-6 font-mono text-xs text-slate-500">{line.rule_code}</td>
-                  <td className="py-3 px-6">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${CATEGORY_COLORS[line.category] || ''}`}>
-                      {line.category}
-                    </span>
-                  </td>
-                  <td className={`py-3 px-6 text-right font-mono font-bold text-sm ${line.category === 'DEDUCTION' ? 'text-red-400' : 'text-white'}`}>
-                    {line.category === 'DEDUCTION' ? '-' : ''}${Number(line.amount).toFixed(2)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="divide-y divide-slate-700/40">
+            {earnings.length > 0 && (
+              <div className="p-6">
+                <p className="text-xs font-bold uppercase tracking-widest text-emerald-400 mb-3">Earnings & Allowances</p>
+                <div className="space-y-2">
+                  {earnings.map((l: any) => (
+                    <div key={l.id} className="flex items-center justify-between text-sm py-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-xs text-slate-500">{l.rule_code}</span>
+                        <span className="text-slate-300">{l.rule_name}</span>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${CATEGORY_COLORS[l.category]}`}>{l.category}</span>
+                      </div>
+                      <span className="font-mono font-semibold text-white">+${Number(l.amount).toFixed(2)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {deductions.length > 0 && (
+              <div className="p-6">
+                <p className="text-xs font-bold uppercase tracking-widest text-red-400 mb-3">Deductions & Withholdings</p>
+                <div className="space-y-2">
+                  {deductions.map((l: any) => (
+                    <div key={l.id} className="flex items-center justify-between text-sm py-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-xs text-slate-500">{l.rule_code}</span>
+                        <span className="text-slate-300">{l.rule_name}</span>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${CATEGORY_COLORS[l.category]}`}>{l.category}</span>
+                      </div>
+                      <span className="font-mono font-semibold text-red-400">-${Number(l.amount).toFixed(2)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         )}
 
         {/* Summary footer */}
-        <div className="border-t border-slate-700/60 px-6 py-4 grid grid-cols-3 gap-4">
+        <div className="border-t border-slate-700/60 px-6 py-4 grid grid-cols-3 gap-4 bg-slate-950/20">
           <div className="text-center">
             <p className="text-[10px] text-slate-500 uppercase tracking-widest">Gross Salary</p>
             <p className="mt-1 text-lg font-bold text-white font-mono">${Number(payslip.gross_salary).toFixed(2)}</p>
@@ -147,19 +157,25 @@ export default async function PayslipDetailPage({ params }: { params: Promise<{ 
 
       {/* Actions */}
       {payslip.status === 'Computed' && (
-        <form action={async () => { 'use server'; await updatePayrunStatus(String(payslip.payrun_id), 'Validated', [payslip.id]); }} className="flex justify-end">
-          <button className="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-violet-500 transition-all">
+        <form action={async () => {
+          'use server'
+          await updatePayrunStatus(String(payslip.payrun_id), 'Validated', [payslip.id])
+        }} className="flex justify-end">
+          <button className="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-violet-500 transition-all cursor-pointer">
             <CheckCircle2 size={15} /> Validate Payslip
           </button>
         </form>
       )}
       {payslip.status === 'Validated' && (
-        <form action={async () => { 'use server'; await updatePayrunStatus(String(payslip.payrun_id), 'Paid', [payslip.id]); }} className="flex justify-end">
-          <button className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-emerald-500 transition-all">
+        <form action={async () => {
+          'use server'
+          await updatePayrunStatus(String(payslip.payrun_id), 'Paid', [payslip.id])
+        }} className="flex justify-end">
+          <button className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-emerald-500 transition-all cursor-pointer">
             <CheckCircle2 size={15} /> Mark as Paid
           </button>
         </form>
       )}
     </div>
-  );
+  )
 }

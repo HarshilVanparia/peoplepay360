@@ -137,13 +137,13 @@ export default function TimeOffAllocationsTable({ allocations }: Props) {
                     {alloc.valid_from} to {alloc.valid_to}
                   </td>
                   <td className="py-3.5 px-5 text-center font-mono font-bold text-white text-sm">
-                    {Number(alloc.total_days).toFixed(1)}
+                    {Number(alloc.total_days) % 1 === 0 ? String(Math.round(Number(alloc.total_days))) : Number(alloc.total_days).toFixed(1)}
                   </td>
                   <td className="py-3.5 px-5 text-center font-mono text-sm text-amber-400">
-                    {Number(alloc.taken_days).toFixed(1)}
+                    {Number(alloc.taken_days) % 1 === 0 ? String(Math.round(Number(alloc.taken_days))) : Number(alloc.taken_days).toFixed(1)}
                   </td>
                   <td className="py-3.5 px-5 text-center font-mono font-bold text-sm text-emerald-400">
-                    {Number(alloc.remaining_days).toFixed(1)}
+                    {Number(alloc.remaining_days) % 1 === 0 ? String(Math.round(Number(alloc.remaining_days))) : Number(alloc.remaining_days).toFixed(1)}
                   </td>
                   <td className="py-3.5 px-5">
                     <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${

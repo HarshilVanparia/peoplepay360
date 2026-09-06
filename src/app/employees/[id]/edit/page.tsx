@@ -1,23 +1,23 @@
-'use client';
-import { use, useEffect, useState } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { getEmployeeHubData, getEmployees, updateEmployee } from '../../../../../actions/employees';
-import { getSchedules } from '../../../../../actions/schedules';
-import { ChevronRight, Save, X } from 'lucide-react';
+'use client'
+import { use, useEffect, useState } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { getEmployeeHubData, getEmployees, updateEmployee } from '../../../../../actions/employees'
+import { getSchedules } from '../../../../../actions/schedules'
+import { ChevronRight, Save, X } from 'lucide-react'
 
-const ROLES = ['Employee', 'HR Manager', 'HR Payroll User', 'HR Payroll Manager', 'Admin'] as const;
-const EMPLOYMENT_TYPES = ['Full-Time', 'Part-Time', 'Contract', 'Intern'] as const;
-const STATUSES = ['Active', 'On Leave', 'Inactive', 'Terminated'] as const;
+const ROLES = ['Employee', 'HR Manager', 'HR Payroll User', 'HR Payroll Manager', 'Admin'] as const
+const EMPLOYMENT_TYPES = ['Full-Time', 'Part-Time', 'Contract', 'Intern'] as const
+const STATUSES = ['Active', 'On Leave', 'Inactive', 'Terminated'] as const
 
 export default function EditEmployee({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
-  const router = useRouter();
-  const [form, setForm] = useState<any>(null);
-  const [schedules, setSchedules] = useState<any[]>([]);
-  const [managers, setManagers] = useState<any[]>([]);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
+  const { id } = use(params)
+  const router = useRouter()
+  const [form, setForm] = useState<any>(null)
+  const [schedules, setSchedules] = useState<any[]>([])
+  const [managers, setManagers] = useState<any[]>([])
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     Promise.all([
@@ -25,17 +25,17 @@ export default function EditEmployee({ params }: { params: Promise<{ id: string 
       getSchedules(),
       getEmployees(),
     ]).then(([hub, scheds, emps]) => {
-      setForm(hub.employee);
-      setSchedules(scheds);
-      setManagers(emps);
-    });
-  }, [id]);
+      setForm(hub.employee)
+      setSchedules(scheds)
+      setManagers(emps)
+    })
+  }, [id])
 
   if (!form) return (
     <div className="flex items-center justify-center h-64">
       <div className="text-slate-400 text-sm animate-pulse">Loading employee record...</div>
     </div>
-  );
+  )
 
   const field = (key: string, label: string, type = 'text') => (
     <div className="space-y-1.5">
@@ -47,7 +47,7 @@ export default function EditEmployee({ params }: { params: Promise<{ id: string 
         className="w-full rounded-xl border border-slate-700 bg-slate-900/60 px-4 py-3 text-sm text-white placeholder-slate-500 outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all"
       />
     </div>
-  );
+  )
 
   const select = (key: string, label: string, options: readonly string[]) => (
     <div className="space-y-1.5">
@@ -60,20 +60,20 @@ export default function EditEmployee({ params }: { params: Promise<{ id: string 
         {options.map(o => <option key={o} value={o}>{o}</option>)}
       </select>
     </div>
-  );
+  )
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
-    setError('');
+    e.preventDefault()
+    setSaving(true)
+    setError('')
     try {
-      await updateEmployee(id, form);
-      router.push(`/employees/${id}`);
+      await updateEmployee(id, form)
+      router.push(`/employees/${id}`)
     } catch (err: any) {
-      setError(err.message || 'Save failed.');
-      setSaving(false);
+      setError(err.message || 'Save failed.')
+      setSaving(false)
     }
-  };
+  }
 
   return (
     <form onSubmit={handleSubmit} className="max-w-4xl mx-auto space-y-6">
@@ -165,5 +165,5 @@ export default function EditEmployee({ params }: { params: Promise<{ id: string 
         </div>
       </div>
     </form>
-  );
+  )
 }

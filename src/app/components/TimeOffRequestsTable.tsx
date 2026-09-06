@@ -142,7 +142,7 @@ export default function TimeOffRequestsTable({ requests, canManage }: Props) {
                     {req.start_date} to {req.end_date}
                   </td>
                   <td className="py-3.5 px-5 text-sm font-semibold text-white">
-                    {req.duration_days} {Number(req.duration_days) === 1 ? 'day' : 'days'}
+                    {Number(req.duration_days) % 1 === 0 ? String(Math.round(Number(req.duration_days))) : Number(req.duration_days).toFixed(1)} {Math.round(Number(req.duration_days)) === 1 ? 'day' : 'days'}
                   </td>
                   <td className="py-3.5 px-5">
                     <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border ${
